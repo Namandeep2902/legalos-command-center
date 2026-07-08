@@ -9,13 +9,39 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RiskRouteImport } from './routes/risk'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as InboxRouteImport } from './routes/inbox'
+import { Route as EvidenceRouteImport } from './routes/evidence'
 import { Route as CasesRouteImport } from './routes/cases'
+import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CasesCaseIdRouteImport } from './routes/cases.$caseId'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiskRoute = RiskRouteImport.update({
+  id: '/risk',
+  path: '/risk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InboxRoute = InboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EvidenceRoute = EvidenceRouteImport.update({
+  id: '/evidence',
+  path: '/evidence',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CasesRoute = CasesRouteImport.update({
@@ -23,49 +49,138 @@ const CasesRoute = CasesRouteImport.update({
   path: '/cases',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ActionsRoute = ActionsRouteImport.update({
+  id: '/actions',
+  path: '/actions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CasesCaseIdRoute = CasesCaseIdRouteImport.update({
+  id: '/$caseId',
+  path: '/$caseId',
+  getParentRoute: () => CasesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/cases': typeof CasesRoute
+  '/actions': typeof ActionsRoute
+  '/cases': typeof CasesRouteWithChildren
+  '/evidence': typeof EvidenceRoute
   '/inbox': typeof InboxRoute
+  '/reports': typeof ReportsRoute
+  '/risk': typeof RiskRoute
+  '/settings': typeof SettingsRoute
+  '/cases/$caseId': typeof CasesCaseIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/cases': typeof CasesRoute
+  '/actions': typeof ActionsRoute
+  '/cases': typeof CasesRouteWithChildren
+  '/evidence': typeof EvidenceRoute
   '/inbox': typeof InboxRoute
+  '/reports': typeof ReportsRoute
+  '/risk': typeof RiskRoute
+  '/settings': typeof SettingsRoute
+  '/cases/$caseId': typeof CasesCaseIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/cases': typeof CasesRoute
+  '/actions': typeof ActionsRoute
+  '/cases': typeof CasesRouteWithChildren
+  '/evidence': typeof EvidenceRoute
   '/inbox': typeof InboxRoute
+  '/reports': typeof ReportsRoute
+  '/risk': typeof RiskRoute
+  '/settings': typeof SettingsRoute
+  '/cases/$caseId': typeof CasesCaseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cases' | '/inbox'
+  fullPaths:
+    | '/'
+    | '/actions'
+    | '/cases'
+    | '/evidence'
+    | '/inbox'
+    | '/reports'
+    | '/risk'
+    | '/settings'
+    | '/cases/$caseId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cases' | '/inbox'
-  id: '__root__' | '/' | '/cases' | '/inbox'
+  to:
+    | '/'
+    | '/actions'
+    | '/cases'
+    | '/evidence'
+    | '/inbox'
+    | '/reports'
+    | '/risk'
+    | '/settings'
+    | '/cases/$caseId'
+  id:
+    | '__root__'
+    | '/'
+    | '/actions'
+    | '/cases'
+    | '/evidence'
+    | '/inbox'
+    | '/reports'
+    | '/risk'
+    | '/settings'
+    | '/cases/$caseId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CasesRoute: typeof CasesRoute
+  ActionsRoute: typeof ActionsRoute
+  CasesRoute: typeof CasesRouteWithChildren
+  EvidenceRoute: typeof EvidenceRoute
   InboxRoute: typeof InboxRoute
+  ReportsRoute: typeof ReportsRoute
+  RiskRoute: typeof RiskRoute
+  SettingsRoute: typeof SettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/risk': {
+      id: '/risk'
+      path: '/risk'
+      fullPath: '/risk'
+      preLoaderRoute: typeof RiskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inbox': {
       id: '/inbox'
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/evidence': {
+      id: '/evidence'
+      path: '/evidence'
+      fullPath: '/evidence'
+      preLoaderRoute: typeof EvidenceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cases': {
@@ -75,6 +190,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CasesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/actions': {
+      id: '/actions'
+      path: '/actions'
+      fullPath: '/actions'
+      preLoaderRoute: typeof ActionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -82,13 +204,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cases/$caseId': {
+      id: '/cases/$caseId'
+      path: '/$caseId'
+      fullPath: '/cases/$caseId'
+      preLoaderRoute: typeof CasesCaseIdRouteImport
+      parentRoute: typeof CasesRoute
+    }
   }
 }
 
+interface CasesRouteChildren {
+  CasesCaseIdRoute: typeof CasesCaseIdRoute
+}
+
+const CasesRouteChildren: CasesRouteChildren = {
+  CasesCaseIdRoute: CasesCaseIdRoute,
+}
+
+const CasesRouteWithChildren = CasesRoute._addFileChildren(CasesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CasesRoute: CasesRoute,
+  ActionsRoute: ActionsRoute,
+  CasesRoute: CasesRouteWithChildren,
+  EvidenceRoute: EvidenceRoute,
   InboxRoute: InboxRoute,
+  ReportsRoute: ReportsRoute,
+  RiskRoute: RiskRoute,
+  SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

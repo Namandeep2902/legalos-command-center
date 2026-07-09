@@ -549,7 +549,10 @@ function DocumentsTab() {
                   <StatusPill status={d.status} tone={d.tone} />
                 </td>
                 <td className="px-3 text-right">
-                  <button className="text-xs font-semibold text-primary hover:underline">
+                  <button
+                    onClick={() => demo(`Opening ${d.name}`, `${d.type} · ${d.status}`)}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
                     Open
                   </button>
                 </td>

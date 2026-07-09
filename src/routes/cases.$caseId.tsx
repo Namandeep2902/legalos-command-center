@@ -84,13 +84,22 @@ function CaseWorkspace() {
               </p>
             </div>
             <div className="flex items-start gap-2 shrink-0">
-              <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary">
+              <button
+                onClick={() => demoOk("Case link copied", "Shareable link with view-only access has been copied.")}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary"
+              >
                 <Share2 className="h-4 w-4" /> Share
               </button>
-              <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary">
+              <button
+                onClick={() => demo("Preparing case export…", "PDF bundle with documents, timeline, and AI insights.")}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary"
+              >
                 <Download className="h-4 w-4" /> Export
               </button>
-              <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
+              <button
+                onClick={() => demoOk("Ask AI", "Nova Legal LLM opened for this case.")}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              >
                 <Sparkles className="h-4 w-4" /> Ask AI
               </button>
             </div>

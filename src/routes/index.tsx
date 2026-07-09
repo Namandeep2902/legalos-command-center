@@ -31,6 +31,7 @@ import {
   riskDistribution,
   caseloadTrend,
 } from "@/lib/mock-data";
+import { demo, demoOk } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,

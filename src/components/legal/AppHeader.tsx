@@ -6,12 +6,18 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { demo, demoOk } from "@/lib/demo-actions";
 
 export function AppHeader() {
+  const [q, setQ] = useState("");
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
+
+  const submitSearch = () => {
+    if (!q.trim()) return;
+    demo(`Searching for "${q}"`, "Global search across cases, documents & parties.");
+  };
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-md">
@@ -22,6 +28,9 @@ export function AppHeader() {
         <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
         <input
           type="text"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submitSearch()}
           placeholder="Search cases, documents, parties…"
           className="h-10 w-full min-w-0 rounded-lg border border-border bg-secondary/50 pl-10 pr-16 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring/20 transition-colors"
         />
@@ -40,12 +49,14 @@ export function AppHeader() {
         <Separator orientation="vertical" className="hidden lg:block h-6" />
 
         <button
+          onClick={() => demo("Help & Support", "Docs, keyboard shortcuts, and contact options.")}
           className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           aria-label="Help"
         >
           <HelpCircle className="h-4 w-4" />
         </button>
         <button
+          onClick={() => demoOk("3 new notifications", "Hearing reminder · Evidence uploaded · Approval pending.")}
           className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           aria-label="Notifications"
         >
@@ -55,17 +66,20 @@ export function AppHeader() {
 
         <Separator orientation="vertical" className="h-6" />
 
-        <div className="flex items-center gap-2.5">
+        <button
+          onClick={() => demo("Anita Nair", "Profile menu · Preferences · Sign out")}
+          className="flex items-center gap-2.5 rounded-lg px-1 py-1 hover:bg-secondary transition-colors"
+        >
           <Avatar className="h-9 w-9 border border-border">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
               AN
             </AvatarFallback>
           </Avatar>
-          <div className="hidden md:block leading-tight">
+          <div className="hidden md:block leading-tight text-left">
             <div className="text-sm font-semibold text-foreground">Anita Nair</div>
             <div className="text-[11px] text-muted-foreground">Legal Ops Manager</div>
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );

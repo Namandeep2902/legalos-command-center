@@ -82,7 +82,7 @@ function ActionsPage() {
           </h2>
         </div>
         <div className="divide-y divide-border">
-          {extended.map((a) => (
+          {visible.map((a) => (
             <div
               key={a.id}
               className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 p-5 hover:bg-secondary/30 transition-colors"

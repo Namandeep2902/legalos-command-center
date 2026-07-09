@@ -829,7 +829,7 @@ function InsightsTab() {
 
 /* ─────────── Notes ─────────── */
 function NotesTab() {
-  const notes = [
+  const seed = [
     {
       author: "Anita Nair",
       role: "Legal Ops Manager",
@@ -843,17 +843,35 @@ function NotesTab() {
       text: "Clause 4.2 interpretation may not hold given precedent in NCDRC/2022/RP/1187. Prepare secondary defense on quantum.",
     },
   ];
+  const [notes, setNotes] = useState(seed);
+  const [draft, setDraft] = useState("");
+
+  const post = () => {
+    const text = draft.trim();
+    if (!text) {
+      demoWarn("Note is empty", "Type something before posting.");
+      return;
+    }
+    setNotes([{ author: "Anita Nair", role: "Legal Ops Manager", time: "just now", text }, ...notes]);
+    setDraft("");
+    demoOk("Note posted", "Visible to all team members on this case.");
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
       <div className="card-elevated p-6">
         <div className="mb-4">
           <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
             placeholder="Add a case note or tag a teammate…"
             className="w-full min-h-24 rounded-lg border border-border bg-surface p-3 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 resize-none"
           />
           <div className="mt-2 flex justify-end">
-            <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">
+            <button
+              onClick={post}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            >
               <MessageSquare className="h-4 w-4" />
               Post Note
             </button>

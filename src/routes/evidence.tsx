@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, XCircle, AlertTriangle, Search } from "lucide-react";
+import { useState } from "react";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { cn } from "@/lib/utils";
+import { demoOk } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/evidence")({
   component: EvidencePage,

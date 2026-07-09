@@ -89,7 +89,10 @@ function RiskPage() {
             5 new motor cases in the last 7 days scored above 75. Common driver:
             missing survey reports at claim intake.
           </p>
-          <button className="mt-4 inline-flex h-9 items-center rounded-lg bg-accent px-3.5 text-xs font-semibold text-accent-foreground">
+          <button
+            onClick={() => demoWarn("Motor risk pattern isolated", "5 cases share missing survey reports at intake. Drafting playbook…")}
+            className="mt-4 inline-flex h-9 items-center rounded-lg bg-accent px-3.5 text-xs font-semibold text-accent-foreground hover:opacity-90 transition-opacity"
+          >
             Investigate pattern
           </button>
         </div>

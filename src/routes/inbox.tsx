@@ -147,7 +147,10 @@ function SmartInbox() {
             <h2 className="text-lg font-bold">Recent Documents</h2>
             <p className="text-sm text-muted-foreground mt-0.5">Last 24 hours</p>
           </div>
-          <button className="text-xs font-semibold text-primary hover:underline shrink-0">
+          <button
+            onClick={() => demo("Recent documents", "Showing last 24 hours. Extend range in Filters.")}
+            className="text-xs font-semibold text-primary hover:underline shrink-0"
+          >
             View all
           </button>
         </div>

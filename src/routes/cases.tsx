@@ -42,11 +42,17 @@ function CasesPage() {
         description="248 active matters across motor, health, and property insurance disputes. Ranked by AI risk score."
         actions={
           <>
-            <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary transition-colors">
+            <button
+              onClick={() => demo("Filters", "Court · Stage · Risk · Assigned counsel · Date range")}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary transition-colors"
+            >
               <Filter className="h-4 w-4" />
               Filters
             </button>
-            <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+            <button
+              onClick={() => demoOk("New case draft started", "Fill claim details or drop a legal notice to auto-populate.")}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+            >
               <Plus className="h-4 w-4" />
               New Case
             </button>
@@ -60,24 +66,28 @@ function CasesPage() {
           <div className="relative flex-1 min-w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by case ID, party, or type…"
               className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
             />
           </div>
-          {["All", "Motor", "Health", "Property", "High Risk"].map((chip, i) => (
+          {CHIPS.map((c) => (
             <button
-              key={chip}
+              key={c}
+              onClick={() => setChip(c)}
               className={`h-9 rounded-md border px-3 text-xs font-semibold transition-colors ${
-                i === 0
+                chip === c
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-background border-border text-foreground hover:bg-secondary"
               }`}
             >
-              {chip}
+              {c}
             </button>
           ))}
         </div>
       </div>
+
 
       <div className="card-elevated overflow-hidden">
         <div className="overflow-x-auto">

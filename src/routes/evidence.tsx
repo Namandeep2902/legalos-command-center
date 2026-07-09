@@ -18,7 +18,14 @@ const rows = [
 ];
 
 function EvidencePage() {
-  const totalMissing = rows.reduce((a, r) => a + r.missing.length, 0);
+  const [q, setQ] = useState("");
+  const filtered = rows.filter(
+    (r) =>
+      !q.trim() ||
+      r.case.toLowerCase().includes(q.toLowerCase()) ||
+      r.party.toLowerCase().includes(q.toLowerCase()),
+  );
+  const totalMissing = filtered.reduce((a, r) => a + r.missing.length, 0);
   return (
     <div className="mx-auto max-w-[1500px] p-4 md:p-8">
       <PageHeader

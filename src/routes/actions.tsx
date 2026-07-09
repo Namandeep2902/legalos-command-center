@@ -40,6 +40,14 @@ function ActionsPage() {
     { label: "Later", count: 10, tone: "neutral" as const },
   ];
 
+  const [group, setGroup] = useState<string>("Overdue");
+  const visible = extended.filter((a) => {
+    if (group === "Overdue") return a.priority === "HIGH";
+    if (group === "Due Today") return a.due.toLowerCase().includes("day") || a.due.toLowerCase().includes("today") || a.due.toLowerCase().includes("hour");
+    if (group === "This Week") return a.due.toLowerCase().includes("day") || a.due.toLowerCase().includes("week");
+    return true;
+  });
+
   return (
     <div className="mx-auto max-w-[1400px] p-4 md:p-8">
       <PageHeader
@@ -49,20 +57,22 @@ function ActionsPage() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {groups.map((g, i) => (
-          <div
+        {groups.map((g) => (
+          <button
             key={g.label}
-            className={`card-elevated p-4 cursor-pointer transition-all ${
-              i === 0 ? "ring-2 ring-destructive/30" : "hover:border-primary/30"
+            onClick={() => setGroup(g.label)}
+            className={`card-elevated p-4 cursor-pointer text-left transition-all ${
+              group === g.label ? "ring-2 ring-primary/40 border-primary/30" : "hover:border-primary/30"
             }`}
           >
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               {g.label}
             </div>
             <div className="mt-1 text-2xl font-bold tabular-nums">{g.count}</div>
-          </div>
+          </button>
         ))}
       </div>
+
 
       <div className="card-elevated overflow-hidden">
         <div className="p-5 border-b border-border">

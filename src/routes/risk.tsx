@@ -4,6 +4,7 @@ import { RiskBadge } from "@/components/legal/RiskBadge";
 import { casesList, riskDistribution } from "@/lib/mock-data";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
 import { ShieldAlert, TrendingUp, Flame } from "lucide-react";
+import { demoWarn } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/risk")({
   component: RiskPage,

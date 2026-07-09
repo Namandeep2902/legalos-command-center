@@ -105,7 +105,7 @@ function CasesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {casesList.map((c) => (
+              {filtered.map((c) => (
                 <tr key={c.id} className="hover:bg-secondary/30 transition-colors">
                   <td className="px-5 py-3.5">
                     <Link

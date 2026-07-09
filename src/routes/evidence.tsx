@@ -60,6 +60,8 @@ function EvidencePage() {
         <div className="p-4 border-b border-border relative">
           <Search className="absolute left-7 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
             placeholder="Search cases…"
             className="h-9 w-full max-w-md rounded-md border border-border bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/20"
           />

@@ -38,7 +38,20 @@ function SmartInbox() {
               <div className="mt-1 text-xs text-muted-foreground">
                 Up to 50 MB per file · Batch uploads supported
               </div>
-              <input type="file" className="sr-only" />
+              <input
+                type="file"
+                multiple
+                className="sr-only"
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files && files.length) {
+                    demoOk(
+                      `${files.length} file${files.length > 1 ? "s" : ""} queued`,
+                      `Nova Legal LLM is extracting entities from ${files[0].name}${files.length > 1 ? " …" : ""}`,
+                    );
+                  }
+                }}
+              />
               <div className="mt-5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">
                 <UploadCloud className="h-4 w-4" />
                 Choose files

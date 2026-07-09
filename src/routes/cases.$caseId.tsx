@@ -448,7 +448,10 @@ function RecommendationsCard() {
                     {r.confidence}%
                   </div>
                 </div>
-                <button className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-secondary">
+                <button
+                  onClick={() => demoOk(`Actioning: ${r.title}`, r.reason)}
+                  className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-secondary"
+                >
                   Act <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </div>

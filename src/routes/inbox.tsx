@@ -3,6 +3,7 @@ import { UploadCloud, FileText, Sparkles, CheckCircle2, Loader2, XCircle, ArrowR
 import { PageHeader } from "@/components/legal/PageHeader";
 import { StatusPill } from "@/components/legal/RiskBadge";
 import { inboxDocuments } from "@/lib/mock-data";
+import { demo, demoOk } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/inbox")({
   component: SmartInbox,

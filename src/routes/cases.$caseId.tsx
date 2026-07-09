@@ -29,6 +29,7 @@ import {
   recommendations,
 } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { demo, demoOk, demoWarn } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/cases/$caseId")({
   component: CaseWorkspace,

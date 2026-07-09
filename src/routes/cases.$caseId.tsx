@@ -29,6 +29,7 @@ import {
   recommendations,
 } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { demo, demoOk, demoWarn } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/cases/$caseId")({
   component: CaseWorkspace,
@@ -83,13 +84,22 @@ function CaseWorkspace() {
               </p>
             </div>
             <div className="flex items-start gap-2 shrink-0">
-              <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary">
+              <button
+                onClick={() => demoOk("Case link copied", "Shareable link with view-only access has been copied.")}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary"
+              >
                 <Share2 className="h-4 w-4" /> Share
               </button>
-              <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary">
+              <button
+                onClick={() => demo("Preparing case export…", "PDF bundle with documents, timeline, and AI insights.")}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary"
+              >
                 <Download className="h-4 w-4" /> Export
               </button>
-              <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
+              <button
+                onClick={() => demoOk("Ask AI", "Nova Legal LLM opened for this case.")}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              >
                 <Sparkles className="h-4 w-4" /> Ask AI
               </button>
             </div>
@@ -438,7 +448,10 @@ function RecommendationsCard() {
                     {r.confidence}%
                   </div>
                 </div>
-                <button className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-secondary">
+                <button
+                  onClick={() => demoOk(`Actioning: ${r.title}`, r.reason)}
+                  className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-secondary"
+                >
                   Act <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -472,13 +485,22 @@ function ApprovalCard() {
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
-        <button className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-success text-success-foreground text-sm font-semibold hover:opacity-90">
+        <button
+          onClick={() => demoOk("Approved", "Outbound email scheduled to Mr. K. Rao.")}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-success text-success-foreground text-sm font-semibold hover:opacity-90"
+        >
           <Check className="h-4 w-4" /> Approve
         </button>
-        <button className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold hover:bg-secondary">
+        <button
+          onClick={() => demo("Editing draft…", "Open the AI-drafted email in the editor.")}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold hover:bg-secondary"
+        >
           <Pencil className="h-4 w-4" /> Edit
         </button>
-        <button className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold text-destructive hover:bg-destructive/10">
+        <button
+          onClick={() => demoWarn("Suggestion rejected", "Removed from approval queue and logged.")}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold text-destructive hover:bg-destructive/10"
+        >
           <X className="h-4 w-4" /> Reject
         </button>
       </div>
@@ -527,7 +549,10 @@ function DocumentsTab() {
                   <StatusPill status={d.status} tone={d.tone} />
                 </td>
                 <td className="px-3 text-right">
-                  <button className="text-xs font-semibold text-primary hover:underline">
+                  <button
+                    onClick={() => demo(`Opening ${d.name}`, `${d.type} · ${d.status}`)}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
                     Open
                   </button>
                 </td>
@@ -677,7 +702,14 @@ function EvidenceTab() {
                   </span>
                 </td>
                 <td className="px-3 text-right">
-                  <button className="text-xs font-semibold text-primary hover:underline">
+                  <button
+                    onClick={() =>
+                      e.status === "Missing"
+                        ? demoWarn(`Requesting: ${e.name}`, "Sent to opposing counsel and surveyor.")
+                        : demo(`Viewing ${e.name}`, `${e.importance} · ${e.status}`)
+                    }
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
                     {e.status === "Missing" ? "Request" : "View"}
                   </button>
                 </td>
@@ -797,7 +829,7 @@ function InsightsTab() {
 
 /* ─────────── Notes ─────────── */
 function NotesTab() {
-  const notes = [
+  const seed = [
     {
       author: "Anita Nair",
       role: "Legal Ops Manager",
@@ -811,17 +843,35 @@ function NotesTab() {
       text: "Clause 4.2 interpretation may not hold given precedent in NCDRC/2022/RP/1187. Prepare secondary defense on quantum.",
     },
   ];
+  const [notes, setNotes] = useState(seed);
+  const [draft, setDraft] = useState("");
+
+  const post = () => {
+    const text = draft.trim();
+    if (!text) {
+      demoWarn("Note is empty", "Type something before posting.");
+      return;
+    }
+    setNotes([{ author: "Anita Nair", role: "Legal Ops Manager", time: "just now", text }, ...notes]);
+    setDraft("");
+    demoOk("Note posted", "Visible to all team members on this case.");
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
       <div className="card-elevated p-6">
         <div className="mb-4">
           <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
             placeholder="Add a case note or tag a teammate…"
             className="w-full min-h-24 rounded-lg border border-border bg-surface p-3 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 resize-none"
           />
           <div className="mt-2 flex justify-end">
-            <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">
+            <button
+              onClick={post}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            >
               <MessageSquare className="h-4 w-4" />
               Post Note
             </button>

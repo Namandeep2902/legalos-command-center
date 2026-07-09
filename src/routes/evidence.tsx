@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, XCircle, AlertTriangle, Search } from "lucide-react";
+import { useState } from "react";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { cn } from "@/lib/utils";
+import { demoOk } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/evidence")({
   component: EvidencePage,
@@ -16,7 +18,14 @@ const rows = [
 ];
 
 function EvidencePage() {
-  const totalMissing = rows.reduce((a, r) => a + r.missing.length, 0);
+  const [q, setQ] = useState("");
+  const filtered = rows.filter(
+    (r) =>
+      !q.trim() ||
+      r.case.toLowerCase().includes(q.toLowerCase()) ||
+      r.party.toLowerCase().includes(q.toLowerCase()),
+  );
+  const totalMissing = filtered.reduce((a, r) => a + r.missing.length, 0);
   return (
     <div className="mx-auto max-w-[1500px] p-4 md:p-8">
       <PageHeader
@@ -51,6 +60,8 @@ function EvidencePage() {
         <div className="p-4 border-b border-border relative">
           <Search className="absolute left-7 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
             placeholder="Search cases…"
             className="h-9 w-full max-w-md rounded-md border border-border bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/20"
           />
@@ -65,7 +76,7 @@ function EvidencePage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {rows.map((r) => {
+            {filtered.map((r) => {
               const pct = Math.round((r.present / r.total) * 100);
               return (
                 <tr key={r.case} className="hover:bg-secondary/30">
@@ -109,7 +120,17 @@ function EvidencePage() {
                     )}
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <button className="text-xs font-semibold text-primary hover:underline">
+                    <button
+                      onClick={() =>
+                        demoOk(
+                          `Evidence request sent · ${r.case}`,
+                          r.missing.length
+                            ? `Requesting: ${r.missing.join(", ")}`
+                            : "All evidence already collected.",
+                        )
+                      }
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
                       Request
                     </button>
                   </td>

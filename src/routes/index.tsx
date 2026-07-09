@@ -31,6 +31,7 @@ import {
   riskDistribution,
   caseloadTrend,
 } from "@/lib/mock-data";
+import { demo, demoOk } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -47,11 +48,17 @@ function Dashboard() {
         description="Your team's workload, risk exposure and next-best actions — synthesized from every document ingested today."
         actions={
           <>
-            <button className="hidden sm:inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3.5 text-sm font-medium hover:bg-secondary transition-colors">
+            <button
+              onClick={() => demo("Time range: Last 7 days", "Switch range: 24h · 7d · 30d · Quarter")}
+              className="hidden sm:inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3.5 text-sm font-medium hover:bg-secondary transition-colors"
+            >
               <Clock className="h-4 w-4" />
               Last 7 days
             </button>
-            <button className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+            <button
+              onClick={() => demoOk("Ask LegalOS", "Nova Legal LLM is ready. Type a question or paste a document.")}
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+            >
               <Sparkles className="h-4 w-4" />
               Ask LegalOS
             </button>

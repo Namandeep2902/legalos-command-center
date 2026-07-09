@@ -1,14 +1,39 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Filter, Plus, Search, ArrowRight } from "lucide-react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { RiskBadge, StatusPill } from "@/components/legal/RiskBadge";
 import { casesList } from "@/lib/mock-data";
+import { demo, demoOk } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/cases")({
   component: CasesPage,
 });
 
+const CHIPS = ["All", "Motor", "Health", "Property", "High Risk"] as const;
+type Chip = (typeof CHIPS)[number];
+
 function CasesPage() {
+  const [query, setQuery] = useState("");
+  const [chip, setChip] = useState<Chip>("All");
+
+  const filtered = useMemo(() => {
+    return casesList.filter((c) => {
+      const matchesChip =
+        chip === "All" ||
+        (chip === "High Risk" ? c.risk === "High" : c.type.toLowerCase().includes(chip.toLowerCase()));
+      const q = query.trim().toLowerCase();
+      const matchesQuery =
+        !q ||
+        c.id.toLowerCase().includes(q) ||
+        c.title.toLowerCase().includes(q) ||
+        c.party.toLowerCase().includes(q) ||
+        c.type.toLowerCase().includes(q);
+      return matchesChip && matchesQuery;
+    });
+  }, [query, chip]);
+
+
   return (
     <div className="mx-auto max-w-[1600px] p-4 md:p-8">
       <PageHeader
@@ -17,11 +42,17 @@ function CasesPage() {
         description="248 active matters across motor, health, and property insurance disputes. Ranked by AI risk score."
         actions={
           <>
-            <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary transition-colors">
+            <button
+              onClick={() => demo("Filters", "Court · Stage · Risk · Assigned counsel · Date range")}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary transition-colors"
+            >
               <Filter className="h-4 w-4" />
               Filters
             </button>
-            <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+            <button
+              onClick={() => demoOk("New case draft started", "Fill claim details or drop a legal notice to auto-populate.")}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+            >
               <Plus className="h-4 w-4" />
               New Case
             </button>
@@ -35,24 +66,28 @@ function CasesPage() {
           <div className="relative flex-1 min-w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by case ID, party, or type…"
               className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
             />
           </div>
-          {["All", "Motor", "Health", "Property", "High Risk"].map((chip, i) => (
+          {CHIPS.map((c) => (
             <button
-              key={chip}
+              key={c}
+              onClick={() => setChip(c)}
               className={`h-9 rounded-md border px-3 text-xs font-semibold transition-colors ${
-                i === 0
+                chip === c
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-background border-border text-foreground hover:bg-secondary"
               }`}
             >
-              {chip}
+              {c}
             </button>
           ))}
         </div>
       </div>
+
 
       <div className="card-elevated overflow-hidden">
         <div className="overflow-x-auto">
@@ -70,7 +105,7 @@ function CasesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {casesList.map((c) => (
+              {filtered.map((c) => (
                 <tr key={c.id} className="hover:bg-secondary/30 transition-colors">
                   <td className="px-5 py-3.5">
                     <Link

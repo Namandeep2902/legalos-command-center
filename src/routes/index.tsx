@@ -49,14 +49,14 @@ function Dashboard() {
         actions={
           <>
             <button
-              onClick={() => import("@/lib/demo-actions").then((m) => m.demo("Time range: Last 7 days", "Switch range: 24h · 7d · 30d · Quarter"))}
+              onClick={() => demo("Time range: Last 7 days", "Switch range: 24h · 7d · 30d · Quarter")}
               className="hidden sm:inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3.5 text-sm font-medium hover:bg-secondary transition-colors"
             >
               <Clock className="h-4 w-4" />
               Last 7 days
             </button>
             <button
-              onClick={() => import("@/lib/demo-actions").then((m) => m.demoOk("Ask LegalOS", "Nova Legal LLM is ready. Type a question or paste a document."))}
+              onClick={() => demoOk("Ask LegalOS", "Nova Legal LLM is ready. Type a question or paste a document.")}
               className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
             >
               <Sparkles className="h-4 w-4" />

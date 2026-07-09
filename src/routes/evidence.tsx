@@ -120,7 +120,17 @@ function EvidencePage() {
                     )}
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <button className="text-xs font-semibold text-primary hover:underline">
+                    <button
+                      onClick={() =>
+                        demoOk(
+                          `Evidence request sent · ${r.case}`,
+                          r.missing.length
+                            ? `Requesting: ${r.missing.join(", ")}`
+                            : "All evidence already collected.",
+                        )
+                      }
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
                       Request
                     </button>
                   </td>

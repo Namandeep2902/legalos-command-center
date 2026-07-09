@@ -485,13 +485,22 @@ function ApprovalCard() {
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
-        <button className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-success text-success-foreground text-sm font-semibold hover:opacity-90">
+        <button
+          onClick={() => demoOk("Approved", "Outbound email scheduled to Mr. K. Rao.")}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-success text-success-foreground text-sm font-semibold hover:opacity-90"
+        >
           <Check className="h-4 w-4" /> Approve
         </button>
-        <button className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold hover:bg-secondary">
+        <button
+          onClick={() => demo("Editing draft…", "Open the AI-drafted email in the editor.")}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold hover:bg-secondary"
+        >
           <Pencil className="h-4 w-4" /> Edit
         </button>
-        <button className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold text-destructive hover:bg-destructive/10">
+        <button
+          onClick={() => demoWarn("Suggestion rejected", "Removed from approval queue and logged.")}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold text-destructive hover:bg-destructive/10"
+        >
           <X className="h-4 w-4" /> Reject
         </button>
       </div>

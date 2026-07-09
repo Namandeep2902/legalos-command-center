@@ -1,14 +1,39 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Filter, Plus, Search, ArrowRight } from "lucide-react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { RiskBadge, StatusPill } from "@/components/legal/RiskBadge";
 import { casesList } from "@/lib/mock-data";
+import { demo, demoOk } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/cases")({
   component: CasesPage,
 });
 
+const CHIPS = ["All", "Motor", "Health", "Property", "High Risk"] as const;
+type Chip = (typeof CHIPS)[number];
+
 function CasesPage() {
+  const [query, setQuery] = useState("");
+  const [chip, setChip] = useState<Chip>("All");
+
+  const filtered = useMemo(() => {
+    return casesList.filter((c) => {
+      const matchesChip =
+        chip === "All" ||
+        (chip === "High Risk" ? c.risk === "High" : c.type.toLowerCase().includes(chip.toLowerCase()));
+      const q = query.trim().toLowerCase();
+      const matchesQuery =
+        !q ||
+        c.id.toLowerCase().includes(q) ||
+        c.title.toLowerCase().includes(q) ||
+        c.party.toLowerCase().includes(q) ||
+        c.type.toLowerCase().includes(q);
+      return matchesChip && matchesQuery;
+    });
+  }, [query, chip]);
+
+
   return (
     <div className="mx-auto max-w-[1600px] p-4 md:p-8">
       <PageHeader

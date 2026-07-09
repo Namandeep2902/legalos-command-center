@@ -4,7 +4,7 @@ import { Zap, ArrowRight, Clock } from "lucide-react";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { PriorityBadge } from "@/components/legal/RiskBadge";
 import { priorityActions } from "@/lib/mock-data";
-import { demo } from "@/lib/demo-actions";
+
 
 export const Route = createFileRoute("/actions")({
   component: ActionsPage,

@@ -1,7 +1,9 @@
 import { Bell, Search, HelpCircle, Command } from "lucide-react";
+import { useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { demo, demoOk } from "@/lib/demo-actions";
 
 export function AppHeader() {
   const today = new Date().toLocaleDateString("en-IN", {

@@ -76,7 +76,7 @@ function EvidencePage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {rows.map((r) => {
+            {filtered.map((r) => {
               const pct = Math.round((r.present / r.total) * 100);
               return (
                 <tr key={r.case} className="hover:bg-secondary/30">

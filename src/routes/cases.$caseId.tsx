@@ -702,7 +702,14 @@ function EvidenceTab() {
                   </span>
                 </td>
                 <td className="px-3 text-right">
-                  <button className="text-xs font-semibold text-primary hover:underline">
+                  <button
+                    onClick={() =>
+                      e.status === "Missing"
+                        ? demoWarn(`Requesting: ${e.name}`, "Sent to opposing counsel and surveyor.")
+                        : demo(`Viewing ${e.name}`, `${e.importance} · ${e.status}`)
+                    }
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
                     {e.status === "Missing" ? "Request" : "View"}
                   </button>
                 </td>

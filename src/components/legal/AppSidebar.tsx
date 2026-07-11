@@ -141,7 +141,7 @@ export function AppSidebar() {
               AI Engine Online
             </div>
             <div className="mt-1 text-[10px] text-sidebar-foreground/50">
-              v2.4 · Nova Legal LLM
+              Gemma-2 · Fireworks AI
             </div>
           </div>
         ) : (

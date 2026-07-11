@@ -984,7 +984,7 @@ function CrossDocIntelTab({ analysis }: { analysis: any }) {
 
           <div className="mt-4 flex items-center gap-2 text-[11px] text-primary-foreground/60">
             <Sparkles className="h-3.5 w-3.5 text-accent" />
-            Last analyzed: {crossDocSummary.lastAnalyzed} · Powered by Nova Legal LLM
+            Last analyzed: {crossDocSummary.lastAnalyzed} · Powered by Gemma-2 (Fireworks AI)
           </div>
         </div>
       </div>

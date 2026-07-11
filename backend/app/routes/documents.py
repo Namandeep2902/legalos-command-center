@@ -1,7 +1,43 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from datetime import datetime, timedelta
+from app.database import documents_col
 from app.services.document_service import process_uploaded_document
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
+
+
+@router.get("/")
+def list_documents(limit: int = 50):
+    """
+    Fetch all uploaded documents, sorted by upload time (newest first).
+    """
+    docs = list(documents_col.find().sort("uploaded_at", -1).limit(limit))
+    result = []
+    for d in docs:
+        uploaded_at = d.get("uploaded_at", datetime.utcnow())
+        # Format as relative time
+        diff = datetime.utcnow() - uploaded_at
+        if diff.total_seconds() < 3600:
+            time_str = f"Today, {uploaded_at.strftime('%H:%M')}"
+        elif diff.days == 0:
+            time_str = f"Today, {uploaded_at.strftime('%H:%M')}"
+        elif diff.days == 1:
+            time_str = "Yesterday"
+        else:
+            time_str = f"{diff.days} days ago"
+
+        result.append({
+            "id": str(d["_id"]),
+            "name": d.get("filename", "Unknown"),
+            "type": d.get("category", "Other"),
+            "source": "PDF Upload",
+            "uploaded": time_str,
+            "uploaded_at": uploaded_at.isoformat(),
+            "status": "Processed",
+            "confidence": d.get("confidence", 0),
+            "case_id": d.get("case_id", ""),
+        })
+    return result
 
 
 @router.post("/upload")

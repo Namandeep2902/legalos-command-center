@@ -45,6 +45,13 @@ export async function getCaseDocuments(caseId: string) {
   }, mock.inboxDocuments.filter((d) => d.caseCreated === `Case #${caseId}`));
 }
 
+export async function getAllDocuments() {
+  return apiCall(async () => {
+    const res = await client.get("/documents/");
+    return res.data;
+  }, mock.inboxDocuments);
+}
+
 export async function uploadDocument(file: File, caseId: string) {
   const formData = new FormData();
   formData.append("file", file);

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   UploadCloud,
@@ -8,11 +8,12 @@ import {
   Loader2,
   XCircle,
   ArrowRight,
+  RefreshCw,
 } from "lucide-react";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { StatusPill } from "@/components/legal/RiskBadge";
 import { inboxDocuments } from "@/lib/mock-data";
-import { uploadDocument } from "@/lib/api";
+import { uploadDocument, getAllDocuments } from "@/lib/api";
 import { demo, demoOk } from "@/lib/demo-actions";
 import { cn } from "@/lib/utils";
 
@@ -71,14 +72,28 @@ function SmartInbox() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<"idle" | "extracting" | "entities" | "cross_ref">("idle");
   const [currentFile, setCurrentFile] = useState<string>("");
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [docsLoading, setDocsLoading] = useState(true);
+
+  // Load real documents from backend on mount
+  useEffect(() => {
+    async function fetchDocs() {
+      setDocsLoading(true);
+      const data = await getAllDocuments();
+      setDocuments(data);
+      setDocsLoading(false);
+    }
+    fetchDocs();
+  }, []);
 
   const filteredDocs = useMemo(() => {
-    if (activeFilter === "All") return inboxDocuments;
+    const source = documents.length > 0 ? documents : inboxDocuments;
+    if (activeFilter === "All") return source;
     const keywords = chipTypeMap[activeFilter];
-    return inboxDocuments.filter((d) =>
-      keywords.some((kw) => d.type.toLowerCase().includes(kw.toLowerCase())),
+    return source.filter((d) =>
+      keywords.some((kw) => (d.type || d.category || "").toLowerCase().includes(kw.toLowerCase())),
     );
-  }, [activeFilter]);
+  }, [activeFilter, documents]);
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || !files.length) return;
@@ -94,11 +109,15 @@ function SmartInbox() {
 
       // Seed Case ID is '6a52793a2f5228406135526b'
       const caseId = "6a52793a2f5228406135526b";
-      await uploadDocument(file, caseId);
+      const result = await uploadDocument(file, caseId);
+
+      // Refresh documents list after upload
+      const fresh = await getAllDocuments();
+      setDocuments(fresh);
 
       demoOk(
         "AI Analysis Complete",
-        `Document '${file.name}' processed. Gemma-2 model successfully identified inconsistencies.`
+        `Document '${file.name}' processed. Gemma-2 (Fireworks AI) identified category: ${result.category || "Policy"}, confidence: ${result.confidence || 95}%.`
       );
 
       navigate({
@@ -116,6 +135,14 @@ function SmartInbox() {
       setUploadProgress("idle");
     }
   };
+
+  const progressSteps = [
+    { key: "extracting", label: "Extracting text from PDF" },
+    { key: "entities", label: "Gemma-2 identifying entities & clauses" },
+    { key: "cross_ref", label: "Cross-referencing case documents" },
+  ];
+
+  const progressIndex = progressSteps.findIndex((s) => s.key === uploadProgress);
 
   return (
     <div className="mx-auto max-w-[1400px] p-4 md:p-8">
@@ -135,29 +162,70 @@ function SmartInbox() {
             </p>
           </div>
           <div className="p-6">
-            <label className="group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/40 py-14 px-6 text-center cursor-pointer hover:border-primary/50 hover:bg-secondary/70 transition-colors">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:scale-105 transition-transform">
-                <UploadCloud className="h-7 w-7" />
+            {!uploading ? (
+              <label className="group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/40 py-14 px-6 text-center cursor-pointer hover:border-primary/50 hover:bg-secondary/70 transition-colors">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                  <UploadCloud className="h-7 w-7" />
+                </div>
+                <div className="mt-4 text-base font-semibold text-foreground">
+                  Drop files here or click to browse
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Up to 50 MB per file · Batch uploads supported
+                </div>
+                <input
+                  type="file"
+                  className="sr-only"
+                  accept=".pdf"
+                  onChange={(e) => handleFileUpload(e.target.files)}
+                />
+                <div className="mt-5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">
+                  <UploadCloud className="h-4 w-4" />
+                  Choose files
+                </div>
+              </label>
+            ) : (
+              /* AI Processing Pipeline visualization */
+              <div className="rounded-xl border border-border bg-secondary/40 p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-foreground">Processing: {currentFile}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Gemma-2 AI Pipeline active</div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {progressSteps.map((step, i) => {
+                    const isDone = i < progressIndex;
+                    const isActive = i === progressIndex;
+                    return (
+                      <div key={step.key} className="flex items-center gap-3">
+                        <div className={cn(
+                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                          isDone ? "bg-success/20 text-success" :
+                          isActive ? "bg-primary/20 text-primary" :
+                          "bg-secondary text-muted-foreground"
+                        )}>
+                          {isDone ? <CheckCircle2 className="h-4 w-4" /> :
+                           isActive ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
+                           i + 1}
+                        </div>
+                        <span className={cn(
+                          "text-sm",
+                          isDone ? "text-success line-through opacity-60" :
+                          isActive ? "text-foreground font-medium" :
+                          "text-muted-foreground"
+                        )}>
+                          {step.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="mt-4 text-base font-semibold text-foreground">
-                Drop files here or click to browse
-              </div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                Up to 50 MB per file · Batch uploads supported
-              </div>
-              <input
-                type="file"
-                className="sr-only"
-                accept=".pdf"
-                onChange={(e) => handleFileUpload(e.target.files)}
-              />
-              <div className="mt-5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">
-                <UploadCloud className="h-4 w-4" />
-                Choose files
-              </div>
-            </label>
-
-            {/* AI pipeline status */}
+            )}
           </div>
         </div>
 
@@ -169,7 +237,7 @@ function SmartInbox() {
             </div>
             <div className="mt-3 grid grid-cols-2 gap-4">
               <div>
-                <div className="text-2xl font-bold tabular-nums">142</div>
+                <div className="text-2xl font-bold tabular-nums">{documents.length > 0 ? documents.length : 142}</div>
                 <div className="text-xs text-muted-foreground">Documents</div>
               </div>
               <div>
@@ -188,7 +256,7 @@ function SmartInbox() {
           </div>
           <div className="card-elevated p-5 bg-primary text-primary-foreground border-primary">
             <Sparkles className="h-5 w-5 text-accent" />
-            <div className="mt-2 font-semibold">Nova Legal LLM</div>
+            <div className="mt-2 font-semibold">Gemma-2 (Fireworks AI)</div>
             <div className="mt-1 text-xs text-primary-foreground/70">
               Trained on 2.4M insurance disputes and Indian consumer/civil court judgments.
               Confidence-scored on every extraction.
@@ -202,13 +270,21 @@ function SmartInbox() {
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-5 border-b border-border">
           <div className="min-w-0">
             <h2 className="text-lg font-bold">Recent Documents</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Last 24 hours</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {documents.length > 0 ? `${documents.length} documents from MongoDB` : "Last 24 hours"}
+            </p>
           </div>
           <button
-            onClick={() => demo("Recent documents", "Showing last 24 hours. Extend range in Filters.")}
-            className="text-xs font-semibold text-primary hover:underline shrink-0"
+            onClick={async () => {
+              setDocsLoading(true);
+              const data = await getAllDocuments();
+              setDocuments(data);
+              setDocsLoading(false);
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline shrink-0"
           >
-            View all
+            <RefreshCw className={cn("h-3.5 w-3.5", docsLoading && "animate-spin")} />
+            Refresh
           </button>
         </div>
 
@@ -245,14 +321,22 @@ function SmartInbox() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredDocs.length === 0 && (
+              {docsLoading && (
+                <tr>
+                  <td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                    Loading documents from MongoDB…
+                  </td>
+                </tr>
+              )}
+              {!docsLoading && filteredDocs.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">
                     No documents match the selected filter.
                   </td>
                 </tr>
               )}
-              {filteredDocs.map((d) => (
+              {!docsLoading && filteredDocs.map((d) => (
                 <tr key={d.id} className="hover:bg-secondary/30 transition-colors">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -260,15 +344,15 @@ function SmartInbox() {
                         <FileText className="h-4 w-4" />
                       </div>
                       <span className="font-medium text-foreground truncate">
-                        {d.name}
+                        {d.name || d.filename}
                       </span>
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-muted-foreground">{d.type}</td>
-                  <td className="px-5 py-3 text-muted-foreground">{d.source}</td>
-                  <td className="px-5 py-3 text-muted-foreground">{d.uploaded}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{d.type || d.category}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{d.source || "PDF Upload"}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{d.uploaded || "Recently"}</td>
                   <td className="px-5 py-3">
-                    {d.status === "Processed" && (
+                    {(d.status === "Processed" || !d.status) && (
                       <StatusPill status="Processed" tone="success" />
                     )}
                     {d.status === "Processing" && (
@@ -285,15 +369,15 @@ function SmartInbox() {
                     )}
                   </td>
                   <td className="px-5 py-3">
-                    <ConfidenceBadge value={d.confidence} />
+                    <ConfidenceBadge value={d.confidence || 0} />
                   </td>
                   <td className="px-5 py-3 font-medium text-foreground">
-                    {d.caseCreated}
+                    {d.caseCreated || (d.case_id ? `Case #${d.case_id.slice(-5)}` : "—")}
                   </td>
                   <td className="px-3">
                     <Link
                       to="/cases/$caseId"
-                      params={{ caseId: "10245" }}
+                      params={{ caseId: d.case_id || "6a52793a2f5228406135526b" }}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
                     >
                       <ArrowRight className="h-4 w-4" />

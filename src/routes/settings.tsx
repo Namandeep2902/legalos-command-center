@@ -215,7 +215,7 @@ function SettingsPage() {
                       <Sparkles className="h-3.5 w-3.5 text-accent" />
                       Active Intelligence Engine
                     </div>
-                    <h4 className="font-bold text-foreground">Nova Legal LLM v2.4 (Enterprise)</h4>
+                    <h4 className="font-bold text-foreground">Gemma-2 · Fireworks AI</h4>
                     <p className="text-xs text-muted-foreground">
                       Trained on 2.4M insurance disputes and Indian consumer/civil court judgments.
                     </p>

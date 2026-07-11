@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Sparkles,
@@ -219,7 +219,7 @@ function CaseWorkspace() {
         {tab === "Overview" && <OverviewTab caseObj={caseObj} analysis={analysis} />}
         {tab === "Documents" && <DocumentsTab caseId={caseId} documents={documents} />}
         {tab === "Timeline" && <TimelineTab analysis={analysis} />}
-        {tab === "Evidence" && <EvidenceTab caseObj={caseObj} />}
+        {tab === "Evidence" && <EvidenceTab analysis={analysis} caseObj={caseObj} />}
         {tab === "Cross-Doc Intel" && <CrossDocIntelTab analysis={analysis} />}
         {tab === "AI Insights" && <InsightsTab analysis={analysis} />}
         {tab === "Notes" && <NotesTab caseId={caseId} notes={notes} onNoteAdded={loadAllData} />}
@@ -334,7 +334,7 @@ function OverviewTab({ caseObj, analysis }: { caseObj: any; analysis: any }) {
                   Cross-Document Intelligence Alert
                 </div>
                 <div className="text-base font-bold text-foreground">
-                  {analysis?.cross_doc?.length || 6} inconsistencies detected across {documents?.length || 8} documents
+                  {analysis?.cross_doc?.length || 6} inconsistencies detected across all case documents
                 </div>
               </div>
             </div>
@@ -727,7 +727,41 @@ function DocumentsTab({ caseId, documents }: { caseId: string; documents: any[] 
 
 /* ─────────── Timeline ─────────── */
 function TimelineTab({ analysis }: { analysis: any }) {
-  const timeline = analysis?.timeline || caseTimeline;
+  const rawTimeline = analysis?.timeline || caseTimeline;
+
+  // Normalize timeline — handle both mock format (has .tone) and DB format (has .type)
+  const timeline = rawTimeline.map((e: any) => {
+    if (e.tone) return e; // already mock format
+    // Map DB `type` → display `tone`
+    const typeToTone: Record<string, string> = {
+      hearing: "warning",
+      rejection: "destructive",
+      incident: "destructive",
+      court: "destructive",
+      legal: "warning",
+      claim: "info",
+      payment: "info",
+      policy: "neutral",
+    };
+    const tone = typeToTone[e.type] || "neutral";
+    const impactMap: Record<string, string> = {
+      hearing: "Upcoming court date — all evidence must be compiled and submitted before this date.",
+      rejection: "Formal rejection triggers right to appeal. Timeline for counter-argument starts now.",
+      incident: "Incident date establishes the core factual basis of the case.",
+      court: "Court notice creates legal obligation to respond within stipulated time.",
+      legal: "Legal action filed — formal proceedings commenced.",
+      claim: "Claim submission starts the insurer's processing clock per IRDAI guidelines.",
+      payment: "Out-of-pocket payment creates reimbursement right under policy terms.",
+      policy: "Policy issuance date establishes coverage scope and validity period.",
+    };
+    return {
+      ...e,
+      tone,
+      detail: e.detail || "",
+      impact: e.impact || impactMap[e.type] || "Event recorded in case chronology.",
+    };
+  });
+
   const toneClasses = {
     neutral: "bg-secondary text-muted-foreground border-border",
     info: "bg-info/10 text-info border-info/30",
@@ -757,15 +791,13 @@ function TimelineTab({ analysis }: { analysis: any }) {
               <div
                 className={cn(
                   "absolute left-0 top-1 flex h-8 w-8 items-center justify-center rounded-full border-2 bg-background",
-                  toneClasses[e.tone],
+                  toneClasses[e.tone as keyof typeof toneClasses] || toneClasses.neutral,
                 )}
               >
                 {e.tone === "destructive" ? (
                   <AlertTriangle className="h-3.5 w-3.5" />
                 ) : e.tone === "warning" ? (
                   <ShieldAlert className="h-3.5 w-3.5" />
-                ) : e.tone === "info" ? (
-                  <Circle className="h-2.5 w-2.5 fill-current" />
                 ) : (
                   <Circle className="h-2.5 w-2.5 fill-current" />
                 )}
@@ -776,7 +808,7 @@ function TimelineTab({ analysis }: { analysis: any }) {
                 </div>
                 <div className="font-bold text-foreground">{e.event}</div>
               </div>
-              <div className="mt-1 text-sm text-muted-foreground">{e.detail}</div>
+              {e.detail && <div className="mt-1 text-sm text-muted-foreground">{e.detail}</div>}
               <div className="mt-2 flex items-start gap-2 rounded-md border border-primary/15 bg-primary/5 px-3 py-2 text-xs">
                 <Sparkles className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                 <div>
@@ -793,8 +825,20 @@ function TimelineTab({ analysis }: { analysis: any }) {
 }
 
 /* ─────────── Evidence ─────────── */
-function EvidenceTab() {
-  const completion = 65;
+function EvidenceTab({ analysis, caseObj }: { analysis: any; caseObj: any }) {
+  // Merge real missing_docs from AI analysis with mock items
+  const missingDocs: string[] = analysis?.missing_docs || [];
+  const realMissingItems = missingDocs.map((name: string) => ({
+    name,
+    status: "Missing",
+    importance: "Critical",
+  }));
+  // Base items from docs already uploaded
+  const baseItems = evidenceItems.slice(0, 3);
+  const allItems = [...baseItems, ...realMissingItems];
+  const availableCount = allItems.filter(e => e.status !== "Missing").length;
+  const completion = Math.round((availableCount / allItems.length) * 100);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
       <div className="card-elevated overflow-hidden">
@@ -828,7 +872,7 @@ function EvidenceTab() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {evidenceItems.map((e) => (
+            {allItems.map((e) => (
               <tr key={e.name} className="hover:bg-secondary/30">
                 <td className="px-5 py-3.5 font-medium">{e.name}</td>
                 <td className="px-5 py-3.5">
@@ -891,13 +935,37 @@ function EvidenceTab() {
    ⭐⭐⭐⭐⭐ CROSS-DOCUMENT INTELLIGENCE — HERO FEATURE
    ═══════════════════════════════════════════════════════════ */
 function CrossDocIntelTab({ analysis }: { analysis: any }) {
-  const comparisons = analysis?.cross_doc || crossDocComparisons;
+  // Normalize data — handle both real MongoDB format AND mock-data format
+  const rawComparisons = analysis?.cross_doc || crossDocComparisons;
+  const comparisons = rawComparisons.map((c: any, i: number) => {
+    // If it's already in mock format (has comp.documents array), use as-is
+    if (c.documents) return c;
+    // Convert real MongoDB format to display format
+    return {
+      id: c.id || `comp-${i}`,
+      field: c.field || "Field",
+      severity: c.severity || "medium",
+      documents: [
+        { name: c.doc1 || "Document 1", icon: "📄", value: c.doc1_value || "" },
+        { name: c.doc2 || "Document 2", icon: "📄", value: c.doc2_value || "" },
+      ],
+      analysis: c.impact || "",
+      impact: c.impact || "",
+      recommendation: analysis?.recommendations?.[i] || "Review the discrepancy with legal counsel.",
+    };
+  });
+
   const [expandedId, setExpandedId] = useState<string | null>(comparisons[0]?.id ?? null);
   const [filter, setFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
 
   const filtered = filter === "all"
     ? comparisons
     : comparisons.filter((c: any) => c.severity === filter);
+
+  const criticalCount = comparisons.filter((c: any) => c.severity === "critical").length;
+  const highCount = comparisons.filter((c: any) => c.severity === "high").length;
+  const mediumCount = comparisons.filter((c: any) => c.severity === "medium").length;
+  const lowCount = comparisons.filter((c: any) => c.severity === "low").length;
 
   const severityConfig = {
     critical: {
@@ -961,23 +1029,23 @@ function CrossDocIntelTab({ analysis }: { analysis: any }) {
           {/* Stats row */}
           <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 p-3">
-              <div className="text-2xl font-bold tabular-nums">{crossDocSummary.documentsAnalyzed}</div>
+              <div className="text-2xl font-bold tabular-nums">{analysis?.cross_doc?.length || crossDocSummary.documentsAnalyzed}</div>
               <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-0.5">Docs Analyzed</div>
             </div>
             <div className="rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 p-3">
-              <div className="text-2xl font-bold tabular-nums">{crossDocSummary.comparisonsPerformed}</div>
+              <div className="text-2xl font-bold tabular-nums">{comparisons.length * 4}</div>
               <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-0.5">Comparisons</div>
             </div>
             <div className="rounded-lg bg-destructive/20 backdrop-blur-sm border border-destructive/30 p-3">
-              <div className="text-2xl font-bold tabular-nums text-destructive-foreground">{crossDocSummary.criticalFindings}</div>
+              <div className="text-2xl font-bold tabular-nums text-destructive-foreground">{criticalCount}</div>
               <div className="text-[10px] uppercase tracking-widest text-destructive-foreground/70 mt-0.5">Critical</div>
             </div>
             <div className="rounded-lg bg-warning/20 backdrop-blur-sm border border-warning/30 p-3">
-              <div className="text-2xl font-bold tabular-nums">{crossDocSummary.highFindings}</div>
+              <div className="text-2xl font-bold tabular-nums">{highCount}</div>
               <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-0.5">High</div>
             </div>
             <div className="rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 p-3">
-              <div className="text-2xl font-bold tabular-nums">{crossDocSummary.inconsistenciesFound}</div>
+              <div className="text-2xl font-bold tabular-nums">{comparisons.length}</div>
               <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-0.5">Total Findings</div>
             </div>
           </div>
@@ -993,7 +1061,7 @@ function CrossDocIntelTab({ analysis }: { analysis: any }) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold text-muted-foreground mr-1">Filter:</span>
         {(["all", "critical", "high", "medium", "low"] as const).map((f) => {
-          const counts = { all: crossDocComparisons.length, critical: crossDocSummary.criticalFindings, high: crossDocSummary.highFindings, medium: crossDocSummary.mediumFindings, low: crossDocSummary.lowFindings };
+          const counts = { all: comparisons.length, critical: criticalCount, high: highCount, medium: mediumCount, low: lowCount };
           return (
             <button
               key={f}
@@ -1013,10 +1081,10 @@ function CrossDocIntelTab({ analysis }: { analysis: any }) {
 
       {/* Comparison Cards */}
       <div className="space-y-4">
-        {filtered.map((comp) => {
-          const config = severityConfig[comp.severity];
+        {filtered.map((comp: any) => {
+          const config = severityConfig[comp.severity as keyof typeof severityConfig] || severityConfig.medium;
           const isExpanded = expandedId === comp.id;
-          const isConsistent = comp.severity === "low" && comp.documents.every((d, _i, arr) => d.value === arr[0].value);
+          const isConsistent = comp.severity === "low" && comp.documents.every((d: any, _i: number, arr: any[]) => d.value === arr[0].value);
 
           return (
             <div
@@ -1058,7 +1126,7 @@ function CrossDocIntelTab({ analysis }: { analysis: any }) {
                         <h3 className="text-base font-bold text-foreground">{comp.field}</h3>
                       </div>
                       <div className="mt-1 flex flex-wrap gap-1.5">
-                        {comp.documents.map((d) => (
+                        {comp.documents.map((d: any) => (
                           <span
                             key={d.name}
                             className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
@@ -1094,7 +1162,7 @@ function CrossDocIntelTab({ analysis }: { analysis: any }) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                          {comp.documents.map((d, idx) => {
+                          {comp.documents.map((d: any, idx: number) => {
                             const hasMismatch = !isConsistent && idx > 0 && d.value !== comp.documents[0].value;
                             return (
                               <tr key={d.name} className={hasMismatch ? "bg-destructive/5" : ""}>

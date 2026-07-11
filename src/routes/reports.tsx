@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { demo, demoOk } from "@/lib/demo-actions";
 import { PageHeader } from "@/components/legal/PageHeader";
 import {
   BarChart,

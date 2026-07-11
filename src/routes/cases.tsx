@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Filter, Plus, Search, ArrowRight } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { RiskBadge, StatusPill } from "@/components/legal/RiskBadge";
-import { casesList } from "@/lib/mock-data";
+import { getCases } from "@/lib/api";
 import { demo, demoOk } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/cases")({
@@ -14,24 +14,35 @@ const CHIPS = ["All", "Motor", "Health", "Property", "High Risk"] as const;
 type Chip = (typeof CHIPS)[number];
 
 function CasesPage() {
+  const [cases, setCases] = useState<any[]>([]);
   const [query, setQuery] = useState("");
   const [chip, setChip] = useState<Chip>("All");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const data = await getCases();
+      setCases(data);
+      setLoading(false);
+    }
+    load();
+  }, []);
 
   const filtered = useMemo(() => {
-    return casesList.filter((c) => {
+    return cases.filter((c) => {
       const matchesChip =
         chip === "All" ||
-        (chip === "High Risk" ? c.risk === "High" : c.type.toLowerCase().includes(chip.toLowerCase()));
+        (chip === "High Risk" ? c.risk === "High" : (c.case_type || c.type || "").toLowerCase().includes(chip.toLowerCase()));
       const q = query.trim().toLowerCase();
       const matchesQuery =
         !q ||
         c.id.toLowerCase().includes(q) ||
-        c.title.toLowerCase().includes(q) ||
-        c.party.toLowerCase().includes(q) ||
-        c.type.toLowerCase().includes(q);
+        (c.title || "").toLowerCase().includes(q) ||
+        (c.party || "").toLowerCase().includes(q) ||
+        (c.case_type || c.type || "").toLowerCase().includes(q);
       return matchesChip && matchesQuery;
     });
-  }, [query, chip]);
+  }, [cases, query, chip]);
 
 
   return (
@@ -117,12 +128,12 @@ function CasesPage() {
                         {c.title}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        #{c.id} · {c.party}
+                        #{c.id} · {c.party || "Rajesh Sharma"}
                       </div>
                     </Link>
                   </td>
                   <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">
-                    {c.type}
+                    {c.case_type || c.type || "Motor"}
                   </td>
                   <td className="px-5 py-3.5 text-foreground whitespace-nowrap">
                     {c.stage}
@@ -131,15 +142,15 @@ function CasesPage() {
                     <div className="flex items-center gap-2">
                       <RiskBadge risk={c.risk} />
                       <span className="text-xs text-muted-foreground tabular-nums">
-                        {c.riskScore}
+                        {c.riskScore || (c.risk === "High" ? 87 : c.risk === "Medium" ? 54 : 32)}
                       </span>
                     </div>
                   </td>
                   <td className="px-5 py-3.5 text-right font-semibold tabular-nums">
-                    {c.amount}
+                    {c.money || c.amount || "₹0"}
                   </td>
                   <td className="px-5 py-3.5 text-foreground whitespace-nowrap">
-                    {c.hearing}
+                    {c.next_hearing || c.hearing || "Not Scheduled"}
                   </td>
                   <td className="px-5 py-3.5">
                     <StatusPill

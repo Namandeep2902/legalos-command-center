@@ -39,6 +39,7 @@ import {
   crossDocSummary,
   teamMembers,
 } from "@/lib/mock-data";
+import { getCase, getCaseDocuments, getCaseAnalysis, getCaseNotes, addCaseNote } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { demo, demoOk, demoWarn } from "@/lib/demo-actions";
 
@@ -60,6 +61,44 @@ type Tab = (typeof TABS)[number];
 function CaseWorkspace() {
   const { caseId } = Route.useParams();
   const [tab, setTab] = useState<Tab>("Overview");
+  
+  // Dynamic State
+  const [caseObj, setCaseObj] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadAllData = async () => {
+    setLoading(true);
+    const [c, docs, ana, nts] = await Promise.all([
+      getCase(caseId),
+      getCaseDocuments(caseId),
+      getCaseAnalysis(caseId),
+      getCaseNotes(caseId)
+    ]);
+    setCaseObj(c);
+    setDocuments(docs);
+    setAnalysis(ana);
+    setNotes(nts);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadAllData();
+  }, [caseId]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <span className="text-sm font-semibold text-muted-foreground">Loading case workspace...</span>
+      </div>
+    );
+  }
+
+  const riskValue = caseObj?.risk || "High";
+  const healthScore = caseObj?.health_score || 81;
+  const claimValue = caseObj?.money || caseObj?.amount || "₹42,80,000";
 
   return (
     <div className="mx-auto max-w-[1600px] p-4 md:p-8">
@@ -81,18 +120,19 @@ function CaseWorkspace() {
                 <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   Case #{caseId}
                 </span>
-                <StatusPill status="Under Review" tone="warning" />
-                <RiskBadge risk="High" />
+                <StatusPill status={caseObj?.status || "Under Review"} tone="warning" />
+                <RiskBadge risk={riskValue} />
                 <span className="text-xs text-muted-foreground">
-                  Risk score: <span className="font-bold text-foreground">87</span>/100
+                  Risk score: <span className="font-bold text-foreground">{healthScore + 6}</span>/100
                 </span>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground text-balance">
-                Motor Insurance Claim Dispute
+                {caseObj?.title || "Motor Insurance Claim Dispute"}
               </h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                Consumer complaint filed against rejection of comprehensive motor claim.
-                Insurer disputes exclusion clause applicability.
+                {caseObj?.case_type === "Health" 
+                  ? "Health insurance dispute regarding cashless treatment denial." 
+                  : "Consumer complaint filed against rejection of comprehensive motor claim."}
               </p>
             </div>
             <div className="flex items-start gap-2 shrink-0">
@@ -123,26 +163,26 @@ function CaseWorkspace() {
           <SummaryCell
             icon={<IndianRupee className="h-4 w-4" />}
             label="Claim Amount"
-            value="₹42,80,000"
+            value={claimValue}
           />
           <SummaryCell
             icon={<Gavel className="h-4 w-4" />}
             label="Current Stage"
-            value="Consumer Court"
-            hint="District Bench II"
+            value={caseObj?.stage || "Consumer Court"}
+            hint="Active Proceedings"
           />
           <SummaryCell
             icon={<Calendar className="h-4 w-4" />}
             label="Next Hearing"
-            value="12 Aug 2026"
-            hint="in 5 days"
+            value={caseObj?.next_hearing || "Not Scheduled"}
+            hint="Scheduled"
             tone="warning"
           />
           <SummaryCell
             icon={<User className="h-4 w-4" />}
             label="Opposing Party"
-            value="Rajesh Sharma"
-            hint="Counsel: A. Menon & Co."
+            value={caseObj?.party || "Rajesh Sharma"}
+            hint="Counsel Represented"
           />
         </div>
       </div>
@@ -165,7 +205,7 @@ function CaseWorkspace() {
             {t}
             {t === "Cross-Doc Intel" && (
               <span className="ml-1 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-destructive-foreground">
-                6
+                {analysis?.cross_doc?.length || 6}
               </span>
             )}
             {tab === t && (
@@ -176,13 +216,13 @@ function CaseWorkspace() {
       </div>
 
       <div className="mt-6">
-        {tab === "Overview" && <OverviewTab />}
-        {tab === "Documents" && <DocumentsTab />}
-        {tab === "Timeline" && <TimelineTab />}
-        {tab === "Evidence" && <EvidenceTab />}
-        {tab === "Cross-Doc Intel" && <CrossDocIntelTab />}
-        {tab === "AI Insights" && <InsightsTab />}
-        {tab === "Notes" && <NotesTab />}
+        {tab === "Overview" && <OverviewTab caseObj={caseObj} analysis={analysis} />}
+        {tab === "Documents" && <DocumentsTab caseId={caseId} documents={documents} />}
+        {tab === "Timeline" && <TimelineTab analysis={analysis} />}
+        {tab === "Evidence" && <EvidenceTab caseObj={caseObj} />}
+        {tab === "Cross-Doc Intel" && <CrossDocIntelTab analysis={analysis} />}
+        {tab === "AI Insights" && <InsightsTab analysis={analysis} />}
+        {tab === "Notes" && <NotesTab caseId={caseId} notes={notes} onNoteAdded={loadAllData} />}
       </div>
     </div>
   );
@@ -222,7 +262,7 @@ function SummaryCell({
 }
 
 /* ─────────── Overview ─────────── */
-function OverviewTab() {
+function OverviewTab({ caseObj, analysis }: { caseObj: any; analysis: any }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
       <div className="space-y-6">
@@ -242,7 +282,7 @@ function OverviewTab() {
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-0.5 text-[11px] font-semibold text-success">
               <CheckCircle2 className="h-3 w-3" />
-              91% confidence
+              {analysis?.confidence || 91}% confidence
             </span>
           </div>
 
@@ -252,7 +292,7 @@ function OverviewTab() {
                 Case Type
               </dt>
               <dd className="mt-1 font-semibold text-foreground">
-                Motor Insurance Claim
+                {caseObj?.case_type || "Motor Insurance Claim"}
               </dd>
             </div>
             <div>
@@ -260,7 +300,7 @@ function OverviewTab() {
                 Core Issue
               </dt>
               <dd className="mt-1 font-semibold text-foreground">
-                Claim rejection dispute after accident
+                {caseObj?.case_type === "Health" ? "Cashless denial challenge" : "Claim rejection dispute after accident"}
               </dd>
             </div>
             <div className="md:col-span-2">
@@ -268,10 +308,7 @@ function OverviewTab() {
                 AI Summary
               </dt>
               <dd className="mt-1 text-foreground leading-relaxed">
-                Policyholder has filed a consumer complaint after claim rejection under
-                exclusion clause 4.2. Survey report referenced in the legal notice is
-                <span className="font-semibold text-destructive"> missing from the case file</span>,
-                and a district consumer court hearing is scheduled in 5 days.
+                {analysis?.brief || "Policyholder has filed a consumer complaint after claim rejection under exclusion clause 4.2. Survey report referenced in the legal notice is missing from the case file, and a district consumer court hearing is scheduled in 5 days."}
               </dd>
             </div>
             <div className="md:col-span-2">
@@ -279,8 +316,7 @@ function OverviewTab() {
                 Recommended Operational Action
               </dt>
               <dd className="mt-1 rounded-lg border border-accent/25 bg-accent/10 px-3 py-2.5 text-foreground">
-                Collect the survey report from the panel surveyor and validate rejection
-                reasoning against clause 4.2 wording before the next hearing.
+                {analysis?.recommendations?.[0]?.reason || "Collect the survey report from the panel surveyor and validate rejection reasoning against clause 4.2 wording before the next hearing."}
               </dd>
             </div>
           </dl>
@@ -298,12 +334,12 @@ function OverviewTab() {
                   Cross-Document Intelligence Alert
                 </div>
                 <div className="text-base font-bold text-foreground">
-                  6 inconsistencies detected across 8 documents
+                  {analysis?.cross_doc?.length || 6} inconsistencies detected across {documents?.length || 8} documents
                 </div>
               </div>
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-[10px] font-bold text-destructive-foreground uppercase tracking-wider">
-              2 Critical
+              {analysis?.cross_doc?.filter((c: any) => c.severity === "critical").length || 2} Critical
             </span>
           </div>
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -329,7 +365,7 @@ function OverviewTab() {
 
       {/* Right column */}
       <div className="space-y-6">
-        <CaseHealthCard />
+        <CaseHealthCard score={caseObj?.health_score || 81} />
         <ExposureCard />
         <TeamCard />
         <ApprovalCard />
@@ -339,8 +375,7 @@ function OverviewTab() {
 }
 
 /* ─────────── Case Health Score ─────────── */
-function CaseHealthCard() {
-  const score = 81;
+function CaseHealthCard({ score = 81 }: { score?: number }) {
   const items = [
     { label: "Policy Copy", ok: true },
     { label: "Claim Form", ok: true },
@@ -634,8 +669,13 @@ function ApprovalCard() {
 }
 
 /* ─────────── Documents ─────────── */
-function DocumentsTab() {
-  const docs = [
+function DocumentsTab({ caseId, documents }: { caseId: string; documents: any[] }) {
+  const docs = documents.length > 0 ? documents.map((d: any) => ({
+    name: d.filename,
+    type: d.category,
+    status: d.confidence > 90 ? "Verified" : d.confidence > 70 ? "Flagged" : "Missing",
+    tone: d.confidence > 90 ? "success" as const : d.confidence > 70 ? "warning" as const : "destructive" as const
+  })) : [
     { name: "Policy_Motor_2024.pdf", type: "Policy", status: "Verified", tone: "success" as const },
     { name: "Claim_Form_10245.pdf", type: "Claim Form", status: "Verified", tone: "success" as const },
     { name: "Rejection_Letter.pdf", type: "Correspondence", status: "Verified", tone: "success" as const },
@@ -686,7 +726,8 @@ function DocumentsTab() {
 }
 
 /* ─────────── Timeline ─────────── */
-function TimelineTab() {
+function TimelineTab({ analysis }: { analysis: any }) {
+  const timeline = analysis?.timeline || caseTimeline;
   const toneClasses = {
     neutral: "bg-secondary text-muted-foreground border-border",
     info: "bg-info/10 text-info border-info/30",
@@ -711,7 +752,7 @@ function TimelineTab() {
       <div className="relative">
         <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-border via-border to-transparent" />
         <ol className="space-y-6">
-          {caseTimeline.map((e, i) => (
+          {timeline.map((e: any, i: number) => (
             <li key={i} className="relative pl-10">
               <div
                 className={cn(
@@ -849,13 +890,14 @@ function EvidenceTab() {
 /* ═══════════════════════════════════════════════════════════
    ⭐⭐⭐⭐⭐ CROSS-DOCUMENT INTELLIGENCE — HERO FEATURE
    ═══════════════════════════════════════════════════════════ */
-function CrossDocIntelTab() {
-  const [expandedId, setExpandedId] = useState<string | null>(crossDocComparisons[0]?.id ?? null);
+function CrossDocIntelTab({ analysis }: { analysis: any }) {
+  const comparisons = analysis?.cross_doc || crossDocComparisons;
+  const [expandedId, setExpandedId] = useState<string | null>(comparisons[0]?.id ?? null);
   const [filter, setFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
 
   const filtered = filter === "all"
-    ? crossDocComparisons
-    : crossDocComparisons.filter((c) => c.severity === filter);
+    ? comparisons
+    : comparisons.filter((c: any) => c.severity === filter);
 
   const severityConfig = {
     critical: {
@@ -1182,7 +1224,14 @@ function CrossDocIntelTab() {
 }
 
 /* ─────────── AI Insights (Original alerts + recommendations) ─────────── */
-function InsightsTab() {
+function InsightsTab({ analysis }: { analysis: any }) {
+  const alerts = analysis?.cross_doc?.map((c: any) => ({
+    severity: c.severity === "critical" ? "high" : c.severity,
+    title: c.field,
+    detail: c.analysis,
+    docs: c.documents.map((d: any) => d.name)
+  })) || documentIntelligenceAlerts;
+
   const severity = {
     high: {
       badge: "bg-destructive text-destructive-foreground",
@@ -1212,7 +1261,7 @@ function InsightsTab() {
             </div>
             <h3 className="mt-0.5 text-lg font-bold">Document Intelligence Alerts</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              4 documents analyzed side-by-side. LegalOS surfaces mismatches, missing
+              {alerts.length} inconsistencies detected side-by-side. LegalOS surfaces mismatches, missing
               references, and clause conflicts.
             </p>
           </div>
@@ -1231,8 +1280,8 @@ function InsightsTab() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {documentIntelligenceAlerts.map((a, i) => {
-          const s = severity[a.severity];
+        {alerts.map((a: any, i: number) => {
+          const s = severity[a.severity as keyof typeof severity] || severity.low;
           return (
             <div key={i} className={cn("rounded-xl border p-5", s.card)}>
               <div className="flex items-start gap-3">
@@ -1260,7 +1309,7 @@ function InsightsTab() {
                     {a.detail}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
-                    {a.docs.map((d) => (
+                    {a.docs.map((d: string) => (
                       <span
                         key={d}
                         className="inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
@@ -1283,34 +1332,37 @@ function InsightsTab() {
 }
 
 /* ─────────── Notes ─────────── */
-function NotesTab() {
-  const seed = [
-    {
-      author: "Anita Nair",
-      role: "Legal Ops Manager",
-      time: "2 hours ago",
-      text: "Called panel surveyor — will send report by EOD tomorrow. Update evidence checklist once received.",
-    },
-    {
-      author: "Vikram Sethi",
-      role: "Senior Counsel",
-      time: "Yesterday",
-      text: "Clause 4.2 interpretation may not hold given precedent in NCDRC/2022/RP/1187. Prepare secondary defense on quantum.",
-    },
-  ];
-  const [notes, setNotes] = useState(seed);
+function NotesTab({ caseId, notes, onNoteAdded }: { caseId: string; notes: any[]; onNoteAdded: () => void }) {
   const [draft, setDraft] = useState("");
 
-  const post = () => {
+  const post = async () => {
     const text = draft.trim();
     if (!text) {
       demoWarn("Note is empty", "Type something before posting.");
       return;
     }
-    setNotes([{ author: "Anita Nair", role: "Legal Ops Manager", time: "just now", text }, ...notes]);
+    await addCaseNote(caseId, "Anita Nair", text);
     setDraft("");
+    onNoteAdded();
     demoOk("Note posted", "Visible to all team members on this case.");
   };
+
+  const currentNotes = notes.length > 0 ? notes : [
+    {
+      author: "Anita Nair",
+      role: "Legal Ops Manager",
+      time: "2 hours ago",
+      message: "Called surveyor K. Rao — will send report by EOD tomorrow.",
+      created_at: null
+    },
+    {
+      author: "Vikram Sethi",
+      role: "Senior Counsel",
+      time: "Yesterday",
+      message: "Exclusion clause 4.2 has strong ambiguity points.",
+      created_at: null
+    }
+  ];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
@@ -1333,24 +1385,26 @@ function NotesTab() {
           </div>
         </div>
         <div className="space-y-4">
-          {notes.map((n, i) => (
+          {currentNotes.map((n: any, i: number) => (
             <div key={i} className="rounded-lg border border-border bg-surface p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                    {n.author
+                    {(n.author || "AN")
                       .split(" ")
-                      .map((p) => p[0])
+                      .map((p: string) => p[0])
                       .join("")}
                   </div>
                   <div>
                     <div className="text-sm font-semibold">{n.author}</div>
-                    <div className="text-[11px] text-muted-foreground">{n.role}</div>
+                    <div className="text-[11px] text-muted-foreground">{n.role || "Legal Team"}</div>
                   </div>
                 </div>
-                <span className="text-[11px] text-muted-foreground">{n.time}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : n.time}
+                </span>
               </div>
-              <p className="mt-2.5 text-sm text-foreground leading-relaxed">{n.text}</p>
+              <p className="mt-2.5 text-sm text-foreground leading-relaxed">{n.message || n.text}</p>
             </div>
           ))}
         </div>

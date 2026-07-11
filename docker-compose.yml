@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: legalos-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - legalos-network
+
+  backend:
+    build: ./backend
+    container_name: legalos-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=legalos
+      - FIREWORKS_API_KEY=${FIREWORKS_API_KEY}
+      - FIREWORKS_MODEL=accounts/fireworks/models/gemma2-9b-it
+      - APP_ENV=production
+    depends_on:
+      - mongodb
+    networks:
+      - legalos-network
+
+  frontend:
+    build: .
+    container_name: legalos-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - legalos-network
+
+volumes:
+  mongo-data:
+
+networks:
+  legalos-network:
+    driver: bridge

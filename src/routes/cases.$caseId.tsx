@@ -20,6 +20,14 @@ import {
   MessageSquare,
   Download,
   Share2,
+  GitCompare,
+  Zap,
+  Eye,
+  Users,
+  TrendingDown,
+  Scale,
+  Search,
+  ArrowRight,
 } from "lucide-react";
 import { RiskBadge, PriorityBadge, StatusPill } from "@/components/legal/RiskBadge";
 import {
@@ -27,6 +35,9 @@ import {
   evidenceItems,
   documentIntelligenceAlerts,
   recommendations,
+  crossDocComparisons,
+  crossDocSummary,
+  teamMembers,
 } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { demo, demoOk, demoWarn } from "@/lib/demo-actions";
@@ -40,6 +51,7 @@ const TABS = [
   "Documents",
   "Timeline",
   "Evidence",
+  "Cross-Doc Intel",
   "AI Insights",
   "Notes",
 ] as const;
@@ -146,9 +158,16 @@ function CaseWorkspace() {
               tab === t
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground",
+              t === "Cross-Doc Intel" && "flex items-center gap-1.5",
             )}
           >
+            {t === "Cross-Doc Intel" && <GitCompare className="h-3.5 w-3.5" />}
             {t}
+            {t === "Cross-Doc Intel" && (
+              <span className="ml-1 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-destructive-foreground">
+                6
+              </span>
+            )}
             {tab === t && (
               <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
@@ -161,6 +180,7 @@ function CaseWorkspace() {
         {tab === "Documents" && <DocumentsTab />}
         {tab === "Timeline" && <TimelineTab />}
         {tab === "Evidence" && <EvidenceTab />}
+        {tab === "Cross-Doc Intel" && <CrossDocIntelTab />}
         {tab === "AI Insights" && <InsightsTab />}
         {tab === "Notes" && <NotesTab />}
       </div>
@@ -266,21 +286,69 @@ function OverviewTab() {
           </dl>
         </div>
 
+        {/* Cross-Doc Intel Teaser */}
+        <div className="rounded-xl border-2 border-dashed border-destructive/30 bg-destructive/5 p-5">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive text-destructive-foreground">
+                <GitCompare className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-widest text-destructive">
+                  Cross-Document Intelligence Alert
+                </div>
+                <div className="text-base font-bold text-foreground">
+                  6 inconsistencies detected across 8 documents
+                </div>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-[10px] font-bold text-destructive-foreground uppercase tracking-wider">
+              2 Critical
+            </span>
+          </div>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {[
+              { label: "Date Mismatch", severity: "critical" },
+              { label: "Coverage Conflict", severity: "critical" },
+              { label: "Amount Inflation", severity: "high" },
+            ].map((f) => (
+              <div key={f.label} className="flex items-center gap-2 rounded-md bg-background border border-border px-3 py-2">
+                <AlertTriangle className={cn("h-3.5 w-3.5 shrink-0", f.severity === "critical" ? "text-destructive" : "text-warning")} />
+                <span className="text-xs font-medium text-foreground">{f.label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            AI compared all case documents side-by-side and found contradictions that may impact your legal position.
+          </p>
+        </div>
+
         {/* Recommendations */}
         <RecommendationsCard />
       </div>
 
       {/* Right column */}
       <div className="space-y-6">
-        <ReadinessCard />
+        <CaseHealthCard />
+        <ExposureCard />
+        <TeamCard />
         <ApprovalCard />
       </div>
     </div>
   );
 }
 
-function ReadinessCard() {
-  const score = 72;
+/* ─────────── Case Health Score ─────────── */
+function CaseHealthCard() {
+  const score = 81;
+  const items = [
+    { label: "Policy Copy", ok: true },
+    { label: "Claim Form", ok: true },
+    { label: "FIR", ok: false },
+    { label: "Survey Report", ok: false },
+    { label: "Medical Report", ok: true },
+    { label: "Hearing Prep", ok: false },
+  ];
   const breakdown = [
     { label: "Documents Available", value: 80 },
     { label: "Evidence Completeness", value: 60 },
@@ -290,7 +358,7 @@ function ReadinessCard() {
   return (
     <div className="card-elevated p-6">
       <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        Case Readiness Score
+        Case Health Score
       </div>
 
       <div className="mt-4 flex items-center gap-5">
@@ -303,7 +371,22 @@ function ReadinessCard() {
         </div>
       </div>
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-5 grid grid-cols-2 gap-2">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-center gap-2 text-xs">
+            {item.ok ? (
+              <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+            ) : (
+              <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
+            )}
+            <span className={item.ok ? "text-foreground" : "text-destructive font-medium"}>
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 space-y-3">
         {breakdown.map((b) => (
           <div key={b.label}>
             <div className="flex justify-between text-xs">
@@ -328,38 +411,74 @@ function ReadinessCard() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
 
-      <div className="mt-6 grid grid-cols-1 gap-3 text-sm">
-        <div className="rounded-lg border border-success/25 bg-success/5 p-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-success mb-1.5">
-            Strengths
-          </div>
-          <ul className="space-y-1">
-            <li className="flex items-center gap-2">
-              <Check className="h-3.5 w-3.5 text-success" />
-              Policy uploaded
-            </li>
-            <li className="flex items-center gap-2">
-              <Check className="h-3.5 w-3.5 text-success" />
-              Claim form available
-            </li>
-          </ul>
+/* ─────────── Exposure Card ─────────── */
+function ExposureCard() {
+  return (
+    <div className="card-elevated p-6 hero-gradient text-primary-foreground">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-accent">
+        <TrendingDown className="h-3.5 w-3.5" />
+        Financial Exposure
+      </div>
+      <div className="mt-3 text-3xl font-bold tabular-nums">₹42.8L</div>
+      <div className="text-xs text-primary-foreground/70 mt-1">
+        Potential financial exposure at current stage
+      </div>
+      <div className="mt-4 space-y-2">
+        <div className="flex justify-between text-xs">
+          <span className="text-primary-foreground/70">Claim Amount</span>
+          <span className="font-semibold">₹42,80,000</span>
         </div>
-        <div className="rounded-lg border border-destructive/25 bg-destructive/5 p-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-destructive mb-1.5">
-            Gaps
-          </div>
-          <ul className="space-y-1">
-            <li className="flex items-center gap-2">
-              <X className="h-3.5 w-3.5 text-destructive" />
-              FIR missing
-            </li>
-            <li className="flex items-center gap-2">
-              <X className="h-3.5 w-3.5 text-destructive" />
-              Survey report missing
-            </li>
-          </ul>
+        <div className="flex justify-between text-xs">
+          <span className="text-primary-foreground/70">Legal Costs (est.)</span>
+          <span className="font-semibold">₹3,50,000</span>
         </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-primary-foreground/70">Penalty Risk</span>
+          <span className="font-semibold">₹2,14,000</span>
+        </div>
+        <div className="border-t border-white/15 pt-2 flex justify-between text-xs">
+          <span className="text-primary-foreground/70 font-semibold">Total Exposure</span>
+          <span className="font-bold text-accent">₹48,44,000</span>
+        </div>
+      </div>
+      <div className="mt-4 rounded-md bg-white/10 px-3 py-2 text-[11px]">
+        <span className="font-semibold text-accent">Stage:</span>{" "}
+        <span className="text-primary-foreground/90">District Consumer Court · First Hearing</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────── Team Card ─────────── */
+function TeamCard() {
+  return (
+    <div className="card-elevated p-6">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <Users className="h-3.5 w-3.5" />
+        Assigned Team
+      </div>
+      <div className="mt-3 space-y-3">
+        {teamMembers.slice(0, 4).map((m) => (
+          <div key={m.name} className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+              {m.initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold truncate">{m.name}</div>
+              <div className="text-[11px] text-muted-foreground">{m.role}</div>
+            </div>
+            <span className={cn(
+              "rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
+              m.status === "Lead" ? "bg-accent/15 text-accent" : "bg-secondary text-muted-foreground",
+            )}>
+              {m.status}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -369,6 +488,7 @@ function ScoreRing({ score }: { score: number }) {
   const radius = 42;
   const circ = 2 * Math.PI * radius;
   const offset = circ - (score / 100) * circ;
+  const color = score >= 80 ? "var(--success)" : score >= 60 ? "var(--warning)" : "var(--destructive)";
   return (
     <div className="relative h-28 w-28 shrink-0">
       <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
@@ -384,7 +504,7 @@ function ScoreRing({ score }: { score: number }) {
           cx="50"
           cy="50"
           r={radius}
-          stroke="var(--warning)"
+          stroke={color}
           strokeWidth="8"
           fill="none"
           strokeLinecap="round"
@@ -720,13 +840,348 @@ function EvidenceTab() {
       </div>
 
       <div className="space-y-6">
-        <ReadinessCard />
+        <CaseHealthCard />
       </div>
     </div>
   );
 }
 
-/* ─────────── AI Insights ─────────── */
+/* ═══════════════════════════════════════════════════════════
+   ⭐⭐⭐⭐⭐ CROSS-DOCUMENT INTELLIGENCE — HERO FEATURE
+   ═══════════════════════════════════════════════════════════ */
+function CrossDocIntelTab() {
+  const [expandedId, setExpandedId] = useState<string | null>(crossDocComparisons[0]?.id ?? null);
+  const [filter, setFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
+
+  const filtered = filter === "all"
+    ? crossDocComparisons
+    : crossDocComparisons.filter((c) => c.severity === filter);
+
+  const severityConfig = {
+    critical: {
+      bg: "bg-gradient-to-r from-destructive/10 via-destructive/5 to-transparent",
+      border: "border-destructive/40",
+      badge: "bg-destructive text-destructive-foreground",
+      icon: "text-destructive",
+      ring: "ring-destructive/20",
+      glow: "shadow-destructive/10",
+    },
+    high: {
+      bg: "bg-gradient-to-r from-warning/10 via-warning/5 to-transparent",
+      border: "border-warning/40",
+      badge: "bg-warning text-warning-foreground",
+      icon: "text-warning",
+      ring: "ring-warning/20",
+      glow: "shadow-warning/10",
+    },
+    medium: {
+      bg: "bg-gradient-to-r from-info/10 via-info/5 to-transparent",
+      border: "border-info/30",
+      badge: "bg-info text-info-foreground",
+      icon: "text-info",
+      ring: "ring-info/20",
+      glow: "shadow-info/10",
+    },
+    low: {
+      bg: "bg-gradient-to-r from-success/10 via-success/5 to-transparent",
+      border: "border-success/30",
+      badge: "bg-success text-success-foreground",
+      icon: "text-success",
+      ring: "ring-success/20",
+      glow: "shadow-success/10",
+    },
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Hero Banner */}
+      <div className="relative overflow-hidden rounded-xl hero-gradient text-primary-foreground p-6 md:p-8 shadow-lg">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-info/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+
+        <div className="relative">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-accent">
+            <GitCompare className="h-4 w-4" />
+            Cross-Document Intelligence
+            <span className="ml-1 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-accent-foreground uppercase">
+              Signature Feature
+            </span>
+          </div>
+          <h2 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight">
+            AI Document Comparison Engine
+          </h2>
+          <p className="mt-2 text-sm text-primary-foreground/70 max-w-2xl">
+            LegalOS analyzed {crossDocSummary.documentsAnalyzed} documents across this case, performing{" "}
+            {crossDocSummary.comparisonsPerformed} field-by-field comparisons. Every document is
+            cross-referenced for inconsistencies, contradictions, and missing data.
+          </p>
+
+          {/* Stats row */}
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 p-3">
+              <div className="text-2xl font-bold tabular-nums">{crossDocSummary.documentsAnalyzed}</div>
+              <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-0.5">Docs Analyzed</div>
+            </div>
+            <div className="rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 p-3">
+              <div className="text-2xl font-bold tabular-nums">{crossDocSummary.comparisonsPerformed}</div>
+              <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-0.5">Comparisons</div>
+            </div>
+            <div className="rounded-lg bg-destructive/20 backdrop-blur-sm border border-destructive/30 p-3">
+              <div className="text-2xl font-bold tabular-nums text-destructive-foreground">{crossDocSummary.criticalFindings}</div>
+              <div className="text-[10px] uppercase tracking-widest text-destructive-foreground/70 mt-0.5">Critical</div>
+            </div>
+            <div className="rounded-lg bg-warning/20 backdrop-blur-sm border border-warning/30 p-3">
+              <div className="text-2xl font-bold tabular-nums">{crossDocSummary.highFindings}</div>
+              <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-0.5">High</div>
+            </div>
+            <div className="rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 p-3">
+              <div className="text-2xl font-bold tabular-nums">{crossDocSummary.inconsistenciesFound}</div>
+              <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-0.5">Total Findings</div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-2 text-[11px] text-primary-foreground/60">
+            <Sparkles className="h-3.5 w-3.5 text-accent" />
+            Last analyzed: {crossDocSummary.lastAnalyzed} · Powered by Nova Legal LLM
+          </div>
+        </div>
+      </div>
+
+      {/* Filter chips */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold text-muted-foreground mr-1">Filter:</span>
+        {(["all", "critical", "high", "medium", "low"] as const).map((f) => {
+          const counts = { all: crossDocComparisons.length, critical: crossDocSummary.criticalFindings, high: crossDocSummary.highFindings, medium: crossDocSummary.mediumFindings, low: crossDocSummary.lowFindings };
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                "h-8 rounded-md border px-3 text-xs font-semibold transition-colors capitalize",
+                filter === f
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background border-border text-foreground hover:bg-secondary",
+              )}
+            >
+              {f} ({counts[f]})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Comparison Cards */}
+      <div className="space-y-4">
+        {filtered.map((comp) => {
+          const config = severityConfig[comp.severity];
+          const isExpanded = expandedId === comp.id;
+          const isConsistent = comp.severity === "low" && comp.documents.every((d, _i, arr) => d.value === arr[0].value);
+
+          return (
+            <div
+              key={comp.id}
+              className={cn(
+                "rounded-xl border-2 overflow-hidden transition-all",
+                config.border,
+                isExpanded && `${config.ring} ring-2 shadow-lg ${config.glow}`,
+              )}
+            >
+              {/* Comparison Header */}
+              <button
+                onClick={() => setExpandedId(isExpanded ? null : comp.id)}
+                className={cn(
+                  "w-full text-left p-5 transition-colors",
+                  config.bg,
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background border border-border shadow-sm",
+                      config.icon,
+                    )}>
+                      {isConsistent ? (
+                        <CheckCircle2 className="h-5 w-5" />
+                      ) : (
+                        <AlertTriangle className="h-5 w-5" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={cn(
+                          "inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest",
+                          config.badge,
+                        )}>
+                          {comp.severity}
+                        </span>
+                        <h3 className="text-base font-bold text-foreground">{comp.field}</h3>
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {comp.documents.map((d) => (
+                          <span
+                            key={d.name}
+                            className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                          >
+                            <span>{d.icon}</span>
+                            {d.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className={cn(
+                    "h-5 w-5 text-muted-foreground shrink-0 transition-transform",
+                    isExpanded && "rotate-90",
+                  )} />
+                </div>
+              </button>
+
+              {/* Expanded Detail */}
+              {isExpanded && (
+                <div className="border-t border-border">
+                  {/* Side-by-side comparison table */}
+                  <div className="p-5">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                      Document Comparison
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                            <th className="text-left font-semibold pb-2 pr-4">Source Document</th>
+                            <th className="text-left font-semibold pb-2">Extracted Value</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {comp.documents.map((d, idx) => {
+                            const hasMismatch = !isConsistent && idx > 0 && d.value !== comp.documents[0].value;
+                            return (
+                              <tr key={d.name} className={hasMismatch ? "bg-destructive/5" : ""}>
+                                <td className="py-3 pr-4">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-base">{d.icon}</span>
+                                    <span className="font-semibold text-foreground">{d.name}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className={cn(
+                                      "font-semibold",
+                                      hasMismatch ? "text-destructive" : "text-foreground",
+                                    )}>
+                                      {d.value}
+                                    </span>
+                                    {hasMismatch && (
+                                      <span className="inline-flex items-center gap-1 rounded bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold text-destructive uppercase tracking-wider">
+                                        <AlertTriangle className="h-2.5 w-2.5" />
+                                        Mismatch
+                                      </span>
+                                    )}
+                                    {isConsistent && idx === 0 && (
+                                      <span className="inline-flex items-center gap-1 rounded bg-success/10 px-1.5 py-0.5 text-[9px] font-bold text-success uppercase tracking-wider">
+                                        <Check className="h-2.5 w-2.5" />
+                                        Consistent
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* AI Analysis Section */}
+                  <div className="border-t border-border bg-secondary/20 p-5 space-y-4">
+                    <div>
+                      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-primary mb-2">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        AI Analysis
+                      </div>
+                      <p className="text-sm text-foreground leading-relaxed">
+                        {comp.analysis}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-wider text-destructive mb-1.5">
+                          Legal Impact
+                        </div>
+                        <p className="text-xs text-foreground leading-relaxed">
+                          {comp.impact}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-success/20 bg-success/5 p-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-wider text-success mb-1.5">
+                          Recommended Action
+                        </div>
+                        <p className="text-xs text-foreground leading-relaxed">
+                          {comp.recommendation}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => demoOk(`Action created: ${comp.field}`, comp.recommendation)}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                      >
+                        <Zap className="h-3 w-3" />
+                        Create Action Item
+                      </button>
+                      <button
+                        onClick={() => demo("Viewing source documents", `Opening documents related to: ${comp.field}`)}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-secondary"
+                      >
+                        <Eye className="h-3 w-3" />
+                        View Sources
+                      </button>
+                      <button
+                        onClick={() => demoOk("Added to hearing brief", `${comp.field} finding will be included in the court submission.`)}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-secondary"
+                      >
+                        <Scale className="h-3 w-3" />
+                        Add to Brief
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Bottom CTA */}
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <GitCompare className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-bold text-foreground">Full Comparison Report</div>
+              <div className="text-xs text-muted-foreground">
+                Download a comprehensive PDF with all {crossDocSummary.comparisonsPerformed} comparisons, findings, and recommendations.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => demoOk("Report generating", "Cross-Document Intelligence Report will download shortly.")}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          >
+            <Download className="h-4 w-4" />
+            Download Report
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────── AI Insights (Original alerts + recommendations) ─────────── */
 function InsightsTab() {
   const severity = {
     high: {
@@ -753,9 +1208,9 @@ function InsightsTab() {
           <div>
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              Cross-Document Intelligence
+              AI-Powered Analysis
             </div>
-            <h3 className="mt-0.5 text-lg font-bold">Document Intelligence</h3>
+            <h3 className="mt-0.5 text-lg font-bold">Document Intelligence Alerts</h3>
             <p className="text-sm text-muted-foreground mt-1">
               4 documents analyzed side-by-side. LegalOS surfaces mismatches, missing
               references, and clause conflicts.
@@ -900,30 +1355,8 @@ function NotesTab() {
           ))}
         </div>
       </div>
-      <div className="card-elevated p-6 h-fit">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Team on this case
-        </div>
-        <div className="mt-3 space-y-3">
-          {[
-            { name: "Anita Nair", role: "Legal Ops Manager (Lead)" },
-            { name: "Vikram Sethi", role: "Senior Counsel" },
-            { name: "Priya Rao", role: "Paralegal" },
-          ].map((m) => (
-            <div key={m.name} className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-xs font-bold">
-                {m.name
-                  .split(" ")
-                  .map((p) => p[0])
-                  .join("")}
-              </div>
-              <div>
-                <div className="text-sm font-semibold">{m.name}</div>
-                <div className="text-[11px] text-muted-foreground">{m.role}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="space-y-6">
+        <TeamCard />
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RiskRouteImport } from './routes/risk'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as EvidenceRouteImport } from './routes/evidence'
 import { Route as CasesRouteImport } from './routes/cases'
@@ -32,6 +33,11 @@ const RiskRoute = RiskRouteImport.update({
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InboxRoute = InboxRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/cases': typeof CasesRouteWithChildren
   '/evidence': typeof EvidenceRoute
   '/inbox': typeof InboxRoute
+  '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/risk': typeof RiskRoute
   '/settings': typeof SettingsRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/cases': typeof CasesRouteWithChildren
   '/evidence': typeof EvidenceRoute
   '/inbox': typeof InboxRoute
+  '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/risk': typeof RiskRoute
   '/settings': typeof SettingsRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/cases': typeof CasesRouteWithChildren
   '/evidence': typeof EvidenceRoute
   '/inbox': typeof InboxRoute
+  '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/risk': typeof RiskRoute
   '/settings': typeof SettingsRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/cases'
     | '/evidence'
     | '/inbox'
+    | '/login'
     | '/reports'
     | '/risk'
     | '/settings'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/cases'
     | '/evidence'
     | '/inbox'
+    | '/login'
     | '/reports'
     | '/risk'
     | '/settings'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/cases'
     | '/evidence'
     | '/inbox'
+    | '/login'
     | '/reports'
     | '/risk'
     | '/settings'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   CasesRoute: typeof CasesRouteWithChildren
   EvidenceRoute: typeof EvidenceRoute
   InboxRoute: typeof InboxRoute
+  LoginRoute: typeof LoginRoute
   ReportsRoute: typeof ReportsRoute
   RiskRoute: typeof RiskRoute
   SettingsRoute: typeof SettingsRoute
@@ -167,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inbox': {
@@ -230,6 +250,7 @@ const rootRouteChildren: RootRouteChildren = {
   CasesRoute: CasesRouteWithChildren,
   EvidenceRoute: EvidenceRoute,
   InboxRoute: InboxRoute,
+  LoginRoute: LoginRoute,
   ReportsRoute: ReportsRoute,
   RiskRoute: RiskRoute,
   SettingsRoute: SettingsRoute,
@@ -237,3 +258,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

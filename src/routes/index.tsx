@@ -8,6 +8,10 @@ import {
   Clock,
   Sparkles,
   TrendingUp,
+  Heart,
+  GitCompare,
+  FileSearch,
+  Calendar,
 } from "lucide-react";
 import {
   PieChart,
@@ -30,6 +34,8 @@ import {
   priorityActions,
   riskDistribution,
   caseloadTrend,
+  aiInsights,
+  priorityCases,
 } from "@/lib/mock-data";
 import { demo, demoOk } from "@/lib/demo-actions";
 
@@ -37,7 +43,7 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-const icons = [Briefcase, AlertOctagon, Gavel, ClipboardList];
+const icons = [Briefcase, AlertOctagon, Gavel, ClipboardList, Heart, Sparkles];
 
 function Dashboard() {
   return (
@@ -67,7 +73,7 @@ function Dashboard() {
       />
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {overviewStats.map((s, i) => (
           <StatCard
             key={s.label}
@@ -79,6 +85,46 @@ function Dashboard() {
           />
         ))}
       </div>
+
+      {/* AI Insights Summary Banner */}
+      <section className="mt-6 overflow-hidden rounded-xl border border-border hero-gradient text-primary-foreground shadow-lg">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/20">
+              <Sparkles className="h-5 w-5 text-accent" />
+            </div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold tracking-tight">AI Intelligence Summary</h2>
+              <span className="inline-flex items-center rounded-full bg-accent/20 px-2.5 py-0.5 text-[11px] font-semibold text-accent">
+                Live
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {aiInsights.map((insight, i) => {
+              const InsightIcon =
+                insight.icon === "alert"
+                  ? AlertOctagon
+                  : insight.icon === "evidence"
+                    ? FileSearch
+                    : insight.icon === "hearing"
+                      ? Calendar
+                      : GitCompare;
+              return (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 rounded-lg border-l-2 border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10"
+                >
+                  <InsightIcon className="mt-0.5 h-4.5 w-4.5 shrink-0 text-accent" />
+                  <p className="text-sm leading-relaxed text-primary-foreground/90">
+                    {insight.text}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       {/* Hero: Priority Actions */}
       <section className="mt-6 overflow-hidden rounded-xl border border-border hero-gradient text-primary-foreground shadow-lg">
@@ -144,6 +190,91 @@ function Dashboard() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Priority Cases — Ranked by AI Risk Score */}
+      <section className="mt-6 card-elevated overflow-hidden">
+        <div className="flex items-center justify-between gap-3 border-b border-border p-6 pb-4">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              AI-Ranked
+            </div>
+            <h3 className="mt-0.5 text-lg font-bold text-foreground">
+              Priority Cases — Ranked by AI Risk Score
+            </h3>
+          </div>
+          <Link
+            to="/cases"
+            className="hidden sm:inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 text-sm font-medium hover:bg-secondary transition-colors"
+          >
+            View all
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+        <div className="divide-y divide-border">
+          {priorityCases.map((c, i) => {
+            const barColor =
+              c.riskScore >= 90
+                ? "bg-destructive"
+                : c.riskScore >= 80
+                  ? "bg-orange-500"
+                  : "bg-warning";
+            const textColor =
+              c.riskScore >= 90
+                ? "text-destructive"
+                : c.riskScore >= 80
+                  ? "text-orange-500"
+                  : "text-warning";
+            return (
+              <Link
+                key={c.id}
+                to="/cases/$caseId"
+                params={{ caseId: c.id }}
+                className="grid grid-cols-1 md:grid-cols-[auto_minmax(0,1fr)_200px_minmax(0,1fr)] items-center gap-4 p-5 hover:bg-secondary/50 transition-colors"
+              >
+                {/* Rank */}
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-bold text-sm ${
+                      i === 0
+                        ? "bg-destructive/10 text-destructive"
+                        : i === 1
+                          ? "bg-orange-500/10 text-orange-500"
+                          : "bg-warning/10 text-warning"
+                    }`}
+                  >
+                    {i + 1}
+                  </div>
+                </div>
+
+                {/* Case Info */}
+                <div className="min-w-0">
+                  <div className="font-semibold text-foreground truncate">{c.title}</div>
+                  <div className="text-xs text-muted-foreground">Case #{c.id}</div>
+                </div>
+
+                {/* Risk Score Bar */}
+                <div className="flex items-center gap-3">
+                  <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`absolute inset-y-0 left-0 rounded-full ${barColor}`}
+                      style={{ width: `${c.riskScore}%` }}
+                    />
+                  </div>
+                  <span className={`text-sm font-bold tabular-nums ${textColor}`}>
+                    {c.riskScore}%
+                  </span>
+                </div>
+
+                {/* Reason + Amount */}
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground truncate">{c.reason}</div>
+                  <div className="text-sm font-semibold text-foreground">{c.amount}</div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

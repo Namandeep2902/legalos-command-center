@@ -199,3 +199,14 @@
 @utility text-balance {
   text-wrap: balance;
 }
+
+/* Hide Lovable badge in development mode */
+#lovable-badge, 
+.lovable-badge,
+[id*="lovable-badge"],
+[class*="lovable-badge"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

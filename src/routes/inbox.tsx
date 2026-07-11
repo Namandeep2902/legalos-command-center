@@ -1,15 +1,80 @@
+import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UploadCloud, FileText, Sparkles, CheckCircle2, Loader2, XCircle, ArrowRight } from "lucide-react";
+import {
+  UploadCloud,
+  FileText,
+  Sparkles,
+  CheckCircle2,
+  Loader2,
+  XCircle,
+  ArrowRight,
+} from "lucide-react";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { StatusPill } from "@/components/legal/RiskBadge";
 import { inboxDocuments } from "@/lib/mock-data";
 import { demo, demoOk } from "@/lib/demo-actions";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/inbox")({
   component: SmartInbox,
 });
 
+const filterChips = [
+  "All",
+  "Court Orders",
+  "Claims",
+  "FIR",
+  "Notices",
+  "Contracts",
+  "Medical",
+  "Survey Reports",
+] as const;
+
+type FilterChip = (typeof filterChips)[number];
+
+/** Map each chip label to substrings that match document types. */
+const chipTypeMap: Record<FilterChip, string[]> = {
+  All: [],
+  "Court Orders": ["Court"],
+  Claims: ["Claim"],
+  FIR: ["FIR"],
+  Notices: ["Notice", "Complaint"],
+  Contracts: ["Policy", "Contract"],
+  Medical: ["Medical"],
+  "Survey Reports": ["Survey"],
+};
+
+function ConfidenceBadge({ value }: { value: number }) {
+  const tone =
+    value >= 90
+      ? "bg-success/15 text-success border-success/25"
+      : value >= 70
+        ? "bg-warning/15 text-warning border-warning/25"
+        : "bg-destructive/15 text-destructive border-destructive/25";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+        tone,
+      )}
+    >
+      {value > 0 ? `${value}%` : "—"}
+    </span>
+  );
+}
+
 function SmartInbox() {
+  const [activeFilter, setActiveFilter] = useState<FilterChip>("All");
+
+  const filteredDocs = useMemo(() => {
+    if (activeFilter === "All") return inboxDocuments;
+    const keywords = chipTypeMap[activeFilter];
+    return inboxDocuments.filter((d) =>
+      keywords.some((kw) => d.type.toLowerCase().includes(kw.toLowerCase())),
+    );
+  }, [activeFilter]);
+
   return (
     <div className="mx-auto max-w-[1400px] p-4 md:p-8">
       <PageHeader
@@ -154,20 +219,48 @@ function SmartInbox() {
             View all
           </button>
         </div>
+
+        {/* Filter chips */}
+        <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-border bg-secondary/30">
+          {filterChips.map((chip) => (
+            <button
+              key={chip}
+              onClick={() => setActiveFilter(chip)}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                activeFilter === chip
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground",
+              )}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/50 text-[11px] uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="text-left font-semibold px-5 py-3">Document</th>
                 <th className="text-left font-semibold px-5 py-3">Type</th>
+                <th className="text-left font-semibold px-5 py-3">Source</th>
                 <th className="text-left font-semibold px-5 py-3">Uploaded</th>
                 <th className="text-left font-semibold px-5 py-3">AI Status</th>
+                <th className="text-left font-semibold px-5 py-3">Confidence</th>
                 <th className="text-left font-semibold px-5 py-3">Case</th>
                 <th className="w-10" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {inboxDocuments.map((d) => (
+              {filteredDocs.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">
+                    No documents match the selected filter.
+                  </td>
+                </tr>
+              )}
+              {filteredDocs.map((d) => (
                 <tr key={d.id} className="hover:bg-secondary/30 transition-colors">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -180,6 +273,7 @@ function SmartInbox() {
                     </div>
                   </td>
                   <td className="px-5 py-3 text-muted-foreground">{d.type}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{d.source}</td>
                   <td className="px-5 py-3 text-muted-foreground">{d.uploaded}</td>
                   <td className="px-5 py-3">
                     {d.status === "Processed" && (
@@ -197,6 +291,9 @@ function SmartInbox() {
                         Retry needed
                       </span>
                     )}
+                  </td>
+                  <td className="px-5 py-3">
+                    <ConfidenceBadge value={d.confidence} />
                   </td>
                   <td className="px-5 py-3 font-medium text-foreground">
                     {d.caseCreated}

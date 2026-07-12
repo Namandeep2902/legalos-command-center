@@ -31,7 +31,7 @@ import { getUser } from "@/lib/auth";
 const intelItems = [
   { title: "Evidence Tracker", url: "/evidence", icon: FileSearch },
   { title: "Risk Intelligence", url: "/risk", icon: ShieldCheck },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Reports", url: "/reports", icon: BarChart3, soon: true },
 ];
 
 export function AppSidebar() {

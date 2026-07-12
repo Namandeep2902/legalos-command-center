@@ -14,8 +14,11 @@ def _id(doc: dict) -> dict:
 
 
 @router.get("/")
-def list_cases():
-    cases = list(cases_col.find().sort("created_at", -1))
+def list_cases(user_id: str = None):
+    query = {}
+    if user_id:
+        query["user_id"] = user_id
+    cases = list(cases_col.find(query).sort("created_at", -1))
     return [_id(c) for c in cases]
 
 
@@ -56,6 +59,24 @@ def get_case_analysis(case_id: str):
         raise HTTPException(status_code=404, detail="No AI analysis yet. Upload documents first.")
     analysis["id"] = str(analysis.pop("_id"))
     return analysis
+
+@router.delete("/{case_id}")
+def delete_case(case_id: str):
+    try:
+        case = cases_col.find_one({"_id": ObjectId(case_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid case ID")
+    
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+        
+    # Delete case and all associated data
+    cases_col.delete_one({"_id": ObjectId(case_id)})
+    documents_col.delete_many({"case_id": case_id})
+    ai_analysis_col.delete_many({"case_id": case_id})
+    notes_col.delete_many({"case_id": case_id})
+    
+    return {"status": "success", "message": "Case and all associated data deleted"}
 
 
 @router.get("/{case_id}/notes")

@@ -14,7 +14,8 @@ import { PageHeader } from "@/components/legal/PageHeader";
 import { StatusPill } from "@/components/legal/RiskBadge";
 import { inboxDocuments } from "@/lib/mock-data";
 import { uploadDocument, getAllDocuments } from "@/lib/api";
-import { demo, demoOk } from "@/lib/demo-actions";
+import { getUser } from "@/lib/auth";
+import { demo, demoOk, demoWarn } from "@/lib/demo-actions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/inbox")({
@@ -70,7 +71,7 @@ function SmartInbox() {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<FilterChip>("All");
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<"idle" | "extracting" | "entities" | "cross_ref">("idle");
+  const [uploadProgress, setUploadProgress] = useState<string>("idle");
   const [currentFile, setCurrentFile] = useState<string>("");
   const [documents, setDocuments] = useState<any[]>([]);
   const [docsLoading, setDocsLoading] = useState(true);
@@ -97,49 +98,71 @@ function SmartInbox() {
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || !files.length) return;
-    const file = files[0];
-    setCurrentFile(file.name);
+    
+    const fileArray = Array.from(files);
+    const displayName = fileArray.length > 1 ? `${fileArray.length} Documents Batch` : fileArray[0].name;
+    
+    setCurrentFile(displayName);
     setUploading(true);
-    setUploadProgress("extracting");
+    setUploadProgress("uploading");
+
+    // Realistic progress steps simulating the backend wait
+    const step1 = setTimeout(() => setUploadProgress("extracting"), 1500);
+    const step2 = setTimeout(() => setUploadProgress("analysis"), 3000);
+    const step3 = setTimeout(() => setUploadProgress("creating"), 6000);
+    const step4 = setTimeout(() => setUploadProgress("timeline"), 8000);
 
     try {
-      // Simulate progress timing for the judge
-      setTimeout(() => setUploadProgress("entities"), 2000);
-      setTimeout(() => setUploadProgress("cross_ref"), 4500);
+      const user = getUser();
+      
+      // 1. Process the FIRST file to create the Zero-Touch Case
+      const firstFile = fileArray[0];
+      const result = await uploadDocument(firstFile, undefined, user?.id);
+      
+      const newCaseId = result.data?.case_id;
+      
+      if (!newCaseId) throw new Error("Failed to auto-create case from first document.");
 
-      // Seed Case ID is '6a52793a2f5228406135526b'
-      const caseId = "6a52793a2f5228406135526b";
-      const result = await uploadDocument(file, caseId);
+      // 2. Upload the REST of the files sequentially to the SAME case
+      if (fileArray.length > 1) {
+        for (let i = 1; i < fileArray.length; i++) {
+           await uploadDocument(fileArray[i], newCaseId, user?.id);
+        }
+      }
 
-      // Refresh documents list after upload
-      const fresh = await getAllDocuments();
-      setDocuments(fresh);
+      clearTimeout(step1);
+      clearTimeout(step2);
+      clearTimeout(step3);
+      clearTimeout(step4);
+
+      setUploadProgress("done");
 
       demoOk(
-        "AI Analysis Complete",
-        `Document '${file.name}' processed. Gemma-2 (Fireworks AI) identified category: ${result.category || "Policy"}, confidence: ${result.confidence || 95}%.`
+        "Zero-Touch Case Created!",
+        `AI successfully processed ${fileArray.length} document(s) and created a new case.`
       );
 
-      navigate({
-        to: "/cases/$caseId",
-        params: { caseId },
-      });
+      setTimeout(() => {
+        navigate({ to: "/cases/$caseId", params: { caseId: newCaseId } });
+      }, 1000);
     } catch (err: any) {
-      console.error(err);
-      demo(
-        "Processing Failed",
-        err.response?.data?.detail || "Make sure MongoDB is running and your Fireworks Key is valid."
-      );
-    } finally {
+      clearTimeout(step1);
+      clearTimeout(step2);
+      clearTimeout(step3);
+      clearTimeout(step4);
+      demoWarn("Upload Failed", err.message || "Could not process document(s).");
       setUploading(false);
       setUploadProgress("idle");
     }
   };
 
   const progressSteps = [
-    { key: "extracting", label: "Extracting text from PDF" },
-    { key: "entities", label: "Gemma-2 identifying entities & clauses" },
-    { key: "cross_ref", label: "Cross-referencing case documents" },
+    { key: "uploading", label: "Uploading PDF" },
+    { key: "extracting", label: "Extracting Text" },
+    { key: "analysis", label: "Running AI Analysis" },
+    { key: "creating", label: "Creating Case" },
+    { key: "timeline", label: "Generating Timeline" },
+    { key: "done", label: "Done" },
   ];
 
   const progressIndex = progressSteps.findIndex((s) => s.key === uploadProgress);
@@ -177,6 +200,7 @@ function SmartInbox() {
                   type="file"
                   className="sr-only"
                   accept=".pdf"
+                  multiple
                   onChange={(e) => handleFileUpload(e.target.files)}
                 />
                 <div className="mt-5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">
@@ -256,7 +280,7 @@ function SmartInbox() {
           </div>
           <div className="card-elevated p-5 bg-primary text-primary-foreground border-primary">
             <Sparkles className="h-5 w-5 text-accent" />
-            <div className="mt-2 font-semibold">Gemma-2 (Fireworks AI)</div>
+            <div className="mt-2 font-semibold">Gemma-2 on AMD Instinct™ MI300X</div>
             <div className="mt-1 text-xs text-primary-foreground/70">
               Trained on 2.4M insurance disputes and Indian consumer/civil court judgments.
               Confidence-scored on every extraction.

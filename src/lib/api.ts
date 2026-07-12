@@ -1,5 +1,6 @@
 import axios from "axios";
 import * as mock from "./mock-data";
+import { getUser } from "./auth";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -17,17 +18,43 @@ async function apiCall<T>(call: () => Promise<T>, fallbackData: T): Promise<T> {
   try {
     return await call();
   } catch (error) {
-    console.warn("Backend API call failed, falling back to mock data:", error);
-    return fallbackData;
+    const user = getUser();
+    if (user?.id === "demo") {
+      console.warn("Backend API call failed, falling back to mock data (demo mode):", error);
+      return fallbackData;
+    }
+    console.error("Backend API call failed:", error);
+    throw error; // REAL users get real errors
   }
 }
 
+// ─── Auth API ────────────────────────────────────────────────────────
+export async function signup(payload: { email: string; password: string; name: string; company?: string }) {
+  const res = await client.post("/users/", payload);
+  return res.data;
+}
+
+export async function login(payload: { email: string; password: string }) {
+  const res = await client.post("/users/login", payload);
+  return res.data;
+}
+
 // ─── Case Portfolio API ──────────────────────────────────────────────────────
+export async function deleteCase(caseId: string) {
+  const res = await client.delete(`/cases/${caseId}`);
+  return res.data;
+}
+
 export async function getCases() {
+  const user = getUser();
+  const userId = user?.id === "demo" ? null : user?.id;
+  
   return apiCall(async () => {
-    const res = await client.get("/cases/");
+    const params = userId ? { user_id: userId } : {};
+    const res = await client.get("/cases/", { params });
+    // If it's a real user and we got a 200, don't fallback to demo data even if empty
     return res.data;
-  }, mock.casesList);
+  }, user?.id === "demo" ? mock.casesList : []);
 }
 
 export async function getCase(caseId: string) {
@@ -36,6 +63,7 @@ export async function getCase(caseId: string) {
     return res.data;
   }, mock.casesList.find((c) => c.id === caseId) || mock.casesList[0]);
 }
+
 
 // ─── Document Upload & Extraction API ────────────────────────────────────────
 export async function getCaseDocuments(caseId: string) {
@@ -46,16 +74,21 @@ export async function getCaseDocuments(caseId: string) {
 }
 
 export async function getAllDocuments() {
+  const user = getUser();
+  const userId = user?.id === "demo" ? null : user?.id;
+
   return apiCall(async () => {
-    const res = await client.get("/documents/");
+    const params = userId ? { user_id: userId } : {};
+    const res = await client.get("/documents/", { params });
     return res.data;
-  }, mock.inboxDocuments);
+  }, user?.id === "demo" ? mock.inboxDocuments : []);
 }
 
-export async function uploadDocument(file: File, caseId: string) {
+export async function uploadDocument(file: File, caseId?: string, userId?: string) {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("case_id", caseId);
+  if (caseId) formData.append("case_id", caseId);
+  if (userId) formData.append("user_id", userId);
 
   // No fallback here since file processing must happen on server
   const res = await client.post("/documents/upload", formData, {
@@ -117,3 +150,15 @@ export async function getUsers() {
     return res.data;
   }, mock.settingsUsers);
 }
+
+// ─── Direct Chat API ──────────────────────────────────────────────────────────
+export async function queryChat(messages: {role: string, text: string}[]) {
+  try {
+    const res = await client.post("/chat", { messages });
+    return res.data;
+  } catch (error) {
+    console.error("Chat request failed:", error);
+    return { response: "Unable to reach AI assistant. Please ensure backend is running." };
+  }
+}
+

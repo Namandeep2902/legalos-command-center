@@ -4,15 +4,20 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { demo, demoOk } from "@/lib/demo-actions";
+import { getUser, getInitials, logout } from "@/lib/auth";
 
 export function AppHeader() {
+  const user = getUser() || { name: "Anita Nair", company: "Nova Insurance" };
+  const initials = getInitials(user.name);
+
   const [q, setQ] = useState("");
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("theme") || "light";
-    }
-    return "light";
-  });
+  const [theme, setTheme] = useState("light");
+
+  // Load theme on mount only to prevent hydration mismatch
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    setTheme(savedTheme);
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -93,20 +98,22 @@ export function AppHeader() {
           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
         </button>
 
-        <Separator orientation="vertical" className="h-6" />
-
         <button
-          onClick={() => demo("Anita Nair", "Profile menu · Preferences · Sign out")}
+          onClick={() => {
+            if (window.confirm("Do you want to sign out?")) {
+              logout();
+            }
+          }}
           className="flex items-center gap-2.5 rounded-lg px-1 py-1 hover:bg-secondary transition-colors"
         >
           <Avatar className="h-9 w-9 border border-border">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-              AN
+              {initials}
             </AvatarFallback>
           </Avatar>
           <div className="hidden md:block leading-tight text-left">
-            <div className="text-sm font-semibold text-foreground">Anita Nair</div>
-            <div className="text-[11px] text-muted-foreground">Legal Ops Manager</div>
+            <div className="text-sm font-semibold text-foreground">{user.name}</div>
+            <div className="text-[11px] text-muted-foreground">{user.company || "Legal Ops Manager"}</div>
           </div>
         </button>
       </div>

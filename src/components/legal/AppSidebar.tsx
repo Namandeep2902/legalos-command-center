@@ -43,12 +43,12 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== "undefined") {
-      return document.documentElement.classList.contains("dark") ? "dark" : "light";
-    }
-    return "light";
-  });
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    const activeTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+    setTheme(activeTheme);
+  }, []);
 
   useEffect(() => {
     const handleThemeChange = (e: any) => {
@@ -136,21 +136,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/settings")} tooltip="Settings">
-                  <Link to="/settings">
-                    <Settings />
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
@@ -164,7 +149,7 @@ export function AppSidebar() {
               AI Engine Online
             </div>
             <div className="mt-1 text-[10px] text-sidebar-foreground/50">
-              Gemma-2 · Fireworks AI
+              Gemma-2 · AMD Instinct™ MI300X
             </div>
           </div>
         ) : (

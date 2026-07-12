@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { jsPDF } from "jspdf";
 import {
   ArrowLeft,
   Sparkles,
@@ -20,6 +21,7 @@ import {
   MessageSquare,
   Download,
   Share2,
+  Trash2,
   GitCompare,
   Zap,
   Eye,
@@ -39,7 +41,7 @@ import {
   crossDocSummary,
   teamMembers,
 } from "@/lib/mock-data";
-import { getCase, getCaseDocuments, getCaseAnalysis, getCaseNotes, addCaseNote } from "@/lib/api";
+import { getCase, getCaseDocuments, getCaseAnalysis, getCaseNotes, addCaseNote, deleteCase } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { demo, demoOk, demoWarn } from "@/lib/demo-actions";
 
@@ -60,14 +62,83 @@ type Tab = (typeof TABS)[number];
 
 function CaseWorkspace() {
   const { caseId } = Route.useParams();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("Overview");
   
-  // Dynamic State
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    demoOk("Case link copied", "Shareable link with view-only access has been copied to clipboard.");
+  };
+
+  const handleDownload = (filename: string) => {
+    demo("Preparing download…", `Generating ${filename}...`);
+    setTimeout(() => {
+      const doc = new jsPDF();
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.text("LegalOS", 20, 30);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.setTextColor(100);
+      doc.text("From Documents to Decisions", 20, 38);
+      
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.5);
+      doc.line(20, 45, 190, 45);
+      
+      doc.setTextColor(0);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("Comprehensive Case Export Bundle", 20, 60);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.text(`Case ID: ${caseId}`, 20, 75);
+      doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 20, 85);
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("Executive Summary:", 20, 105);
+      doc.setFont("helvetica", "normal");
+      
+      const summaryText = caseObj?.title ? 
+        `This export contains all extracted insights, timeline events, and cross-document intelligence for ${caseObj.title}.` : 
+        "This export contains all extracted insights, timeline events, and cross-document intelligence.";
+      
+      const lines = doc.splitTextToSize(summaryText, 170);
+      doc.text(lines, 20, 115);
+      
+      doc.save(filename);
+      demoOk("Download Complete", `${filename} has been saved.`);
+    }, 800);
+  };
+
+  const handleDelete = async () => {
+    if (confirm("Are you sure you want to delete this case and all its documents? This action cannot be undone.")) {
+      demo("Deleting Case", "Removing case and all associated data...");
+      try {
+        await deleteCase(caseId);
+        demoOk("Case Deleted", "The case was successfully removed.");
+        navigate({ to: "/" });
+      } catch (err: any) {
+        demoWarn("Delete Failed", err.message || "Could not delete case.");
+      }
+    }
+  };
+
   const [caseObj, setCaseObj] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<any>(null);
   const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Action Center State
+  const [activeRecommendations, setActiveRecommendations] = useState(recommendations);
+  const [approvalQueue, setApprovalQueue] = useState<any[]>([{
+    id: "initial-q",
+    title: "Collect additional survey evidence from panel surveyor Mr. K. Rao.",
+    reason: "Auto-drafted email & callback request ready to send."
+  }]);
 
   const loadAllData = async () => {
     setLoading(true);
@@ -137,13 +208,19 @@ function CaseWorkspace() {
             </div>
             <div className="flex items-start gap-2 shrink-0">
               <button
-                onClick={() => demoOk("Case link copied", "Shareable link with view-only access has been copied.")}
+                onClick={handleDelete}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive px-3 text-sm font-medium hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </button>
+              <button
+                onClick={handleShare}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary"
               >
                 <Share2 className="h-4 w-4" /> Share
               </button>
               <button
-                onClick={() => demo("Preparing case export…", "PDF bundle with documents, timeline, and AI insights.")}
+                onClick={() => handleDownload(`LegalOS_Case_Export_${caseId}.pdf`)}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-secondary"
               >
                 <Download className="h-4 w-4" /> Export
@@ -216,7 +293,16 @@ function CaseWorkspace() {
       </div>
 
       <div className="mt-6">
-        {tab === "Overview" && <OverviewTab caseObj={caseObj} analysis={analysis} />}
+        {tab === "Overview" && (
+          <OverviewTab 
+            caseObj={caseObj} 
+            analysis={analysis} 
+            activeRecommendations={activeRecommendations}
+            setActiveRecommendations={setActiveRecommendations}
+            approvalQueue={approvalQueue}
+            setApprovalQueue={setApprovalQueue}
+          />
+        )}
         {tab === "Documents" && <DocumentsTab caseId={caseId} documents={documents} />}
         {tab === "Timeline" && <TimelineTab analysis={analysis} />}
         {tab === "Evidence" && <EvidenceTab analysis={analysis} caseObj={caseObj} />}
@@ -262,7 +348,21 @@ function SummaryCell({
 }
 
 /* ─────────── Overview ─────────── */
-function OverviewTab({ caseObj, analysis }: { caseObj: any; analysis: any }) {
+function OverviewTab({ 
+  caseObj, 
+  analysis,
+  activeRecommendations,
+  setActiveRecommendations,
+  approvalQueue,
+  setApprovalQueue
+}: { 
+  caseObj: any; 
+  analysis: any;
+  activeRecommendations: any[];
+  setActiveRecommendations: any;
+  approvalQueue: any[];
+  setApprovalQueue: any;
+}) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
       <div className="space-y-6">
@@ -360,7 +460,14 @@ function OverviewTab({ caseObj, analysis }: { caseObj: any; analysis: any }) {
         </div>
 
         {/* Recommendations */}
-        <RecommendationsCard />
+        <RecommendationsCard 
+          items={activeRecommendations} 
+          onAct={(item) => {
+            setActiveRecommendations(prev => prev.filter(r => r.id !== item.id));
+            setApprovalQueue(prev => [...prev, item]);
+            demoOk(`Moved to Queue`, `Recommendation "${item.title}" moved to Approval Queue.`);
+          }} 
+        />
       </div>
 
       {/* Right column */}
@@ -368,7 +475,17 @@ function OverviewTab({ caseObj, analysis }: { caseObj: any; analysis: any }) {
         <CaseHealthCard score={caseObj?.health_score || 81} />
         <ExposureCard />
         <TeamCard />
-        <ApprovalCard />
+        <ApprovalCard 
+          queue={approvalQueue} 
+          onApprove={(id) => {
+            setApprovalQueue(prev => prev.filter(q => q.id !== id));
+            demoOk("Approved & Executed", "Action has been successfully scheduled.");
+          }}
+          onReject={(id) => {
+            setApprovalQueue(prev => prev.filter(q => q.id !== id));
+            demoWarn("Suggestion Rejected", "Action removed from queue.");
+          }}
+        />
       </div>
     </div>
   );
@@ -558,7 +675,9 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-function RecommendationsCard() {
+function RecommendationsCard({ items, onAct }: { items: any[], onAct: (item: any) => void }) {
+  if (items.length === 0) return null;
+
   return (
     <div className="card-elevated p-6">
       <div className="flex items-center justify-between gap-3 mb-4">
@@ -576,7 +695,7 @@ function RecommendationsCard() {
       </div>
 
       <div className="space-y-3">
-        {recommendations.map((r) => (
+        {items.map((r) => (
           <div
             key={r.id}
             className="rounded-lg border border-border bg-surface p-4 hover:border-primary/30 transition-colors"
@@ -604,7 +723,7 @@ function RecommendationsCard() {
                   </div>
                 </div>
                 <button
-                  onClick={() => demoOk(`Actioning: ${r.title}`, r.reason)}
+                  onClick={() => onAct(r)}
                   className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-secondary"
                 >
                   Act <ChevronRight className="h-3.5 w-3.5" />
@@ -618,7 +737,9 @@ function RecommendationsCard() {
   );
 }
 
-function ApprovalCard() {
+function ApprovalCard({ queue, onApprove, onReject }: { queue: any[], onApprove: (id: string) => void, onReject: (id: string) => void }) {
+  if (queue.length === 0) return null;
+
   return (
     <div className="card-elevated p-6">
       <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -626,41 +747,45 @@ function ApprovalCard() {
       </div>
       <h3 className="mt-0.5 text-lg font-bold text-foreground">Approval Queue</h3>
 
-      <div className="mt-4 rounded-lg border border-border bg-secondary/40 p-4">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
-          <Sparkles className="h-3.5 w-3.5" />
-          AI Suggestion
-        </div>
-        <div className="mt-1.5 text-sm font-semibold text-foreground">
-          Collect additional survey evidence from panel surveyor Mr. K. Rao.
-        </div>
-        <div className="mt-1 text-xs text-muted-foreground">
-          Auto-drafted email & callback request ready to send.
-        </div>
-      </div>
+      {queue.map((q) => (
+        <div key={q.id} className="mt-4">
+          <div className="rounded-lg border border-border bg-secondary/40 p-4">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              AI Suggestion
+            </div>
+            <div className="mt-1.5 text-sm font-semibold text-foreground">
+              {q.title}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {q.reason}
+            </div>
+          </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <button
-          onClick={() => demoOk("Approved", "Outbound email scheduled to Mr. K. Rao.")}
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-success text-success-foreground text-sm font-semibold hover:opacity-90"
-        >
-          <Check className="h-4 w-4" /> Approve
-        </button>
-        <button
-          onClick={() => demo("Editing draft…", "Open the AI-drafted email in the editor.")}
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold hover:bg-secondary"
-        >
-          <Pencil className="h-4 w-4" /> Edit
-        </button>
-        <button
-          onClick={() => demoWarn("Suggestion rejected", "Removed from approval queue and logged.")}
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold text-destructive hover:bg-destructive/10"
-        >
-          <X className="h-4 w-4" /> Reject
-        </button>
-      </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <button
+              onClick={() => onApprove(q.id)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-success text-success-foreground text-sm font-semibold hover:opacity-90"
+            >
+              <Check className="h-4 w-4" /> Approve
+            </button>
+            <button
+              onClick={() => demo("Editing draft…", "Open the AI-drafted email in the editor.")}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold hover:bg-secondary"
+            >
+              <Pencil className="h-4 w-4" /> Edit
+            </button>
+            <button
+              onClick={() => onReject(q.id)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-background text-sm font-semibold text-destructive hover:bg-destructive/10"
+            >
+              <X className="h-4 w-4" /> Reject
+            </button>
+          </div>
+        </div>
+      ))}
 
-      <div className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <div className="mt-5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <ShieldAlert className="h-3.5 w-3.5" />
         Human approval required before any outbound action.
       </div>
@@ -670,19 +795,26 @@ function ApprovalCard() {
 
 /* ─────────── Documents ─────────── */
 function DocumentsTab({ caseId, documents }: { caseId: string; documents: any[] }) {
-  const docs = documents.length > 0 ? documents.map((d: any) => ({
+  if (!documents || documents.length === 0) {
+    return (
+      <div className="card-elevated p-12 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-secondary/50 text-muted-foreground mb-4">
+          <FileText className="h-8 w-8" />
+        </div>
+        <h3 className="text-xl font-bold text-foreground">No documents yet</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Upload documents in the Smart Inbox to get started.
+        </p>
+      </div>
+    );
+  }
+
+  const docs = documents.map((d: any) => ({
     name: d.filename,
     type: d.category,
     status: d.confidence > 90 ? "Verified" : d.confidence > 70 ? "Flagged" : "Missing",
     tone: d.confidence > 90 ? "success" as const : d.confidence > 70 ? "warning" as const : "destructive" as const
-  })) : [
-    { name: "Policy_Motor_2024.pdf", type: "Policy", status: "Verified", tone: "success" as const },
-    { name: "Claim_Form_10245.pdf", type: "Claim Form", status: "Verified", tone: "success" as const },
-    { name: "Rejection_Letter.pdf", type: "Correspondence", status: "Verified", tone: "success" as const },
-    { name: "Legal_Notice_Sharma.pdf", type: "Legal Notice", status: "Flagged", tone: "warning" as const },
-    { name: "Survey_Report.pdf", type: "Survey Report", status: "Missing", tone: "destructive" as const },
-    { name: "FIR_Copy.pdf", type: "FIR", status: "Missing", tone: "destructive" as const },
-  ];
+  }));
   return (
     <div className="card-elevated overflow-hidden">
       <div className="overflow-x-auto">
@@ -727,7 +859,21 @@ function DocumentsTab({ caseId, documents }: { caseId: string; documents: any[] 
 
 /* ─────────── Timeline ─────────── */
 function TimelineTab({ analysis }: { analysis: any }) {
-  const rawTimeline = analysis?.timeline || caseTimeline;
+  const rawTimeline = analysis?.timeline;
+
+  if (!rawTimeline || rawTimeline.length === 0) {
+    return (
+      <div className="card-elevated p-12 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-secondary/50 text-muted-foreground mb-4">
+          <Calendar className="h-8 w-8" />
+        </div>
+        <h3 className="text-xl font-bold text-foreground">No timeline generated</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          AI has not generated a timeline for this case yet.
+        </p>
+      </div>
+    );
+  }
 
   // Normalize timeline — handle both mock format (has .tone) and DB format (has .type)
   const timeline = rawTimeline.map((e: any) => {
@@ -935,8 +1081,23 @@ function EvidenceTab({ analysis, caseObj }: { analysis: any; caseObj: any }) {
    ⭐⭐⭐⭐⭐ CROSS-DOCUMENT INTELLIGENCE — HERO FEATURE
    ═══════════════════════════════════════════════════════════ */
 function CrossDocIntelTab({ analysis }: { analysis: any }) {
-  // Normalize data — handle both real MongoDB format AND mock-data format
-  const rawComparisons = analysis?.cross_doc || crossDocComparisons;
+  // Normalize data
+  const rawComparisons = analysis?.cross_doc;
+
+  if (!rawComparisons || rawComparisons.length === 0) {
+    return (
+      <div className="card-elevated p-12 text-center max-w-2xl mx-auto mt-8">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 text-destructive mb-4">
+          <GitCompare className="h-8 w-8" />
+        </div>
+        <h3 className="text-xl font-bold text-foreground">Waiting for more documents</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Upload Claim Form, FIR, Survey Report to enable comparison.
+        </p>
+      </div>
+    );
+  }
+
   const comparisons = rawComparisons.map((c: any, i: number) => {
     // If it's already in mock format (has comp.documents array), use as-is
     if (c.documents) return c;
@@ -1052,7 +1213,7 @@ function CrossDocIntelTab({ analysis }: { analysis: any }) {
 
           <div className="mt-4 flex items-center gap-2 text-[11px] text-primary-foreground/60">
             <Sparkles className="h-3.5 w-3.5 text-accent" />
-            Last analyzed: {crossDocSummary.lastAnalyzed} · Powered by Gemma-2 (Fireworks AI)
+            Last analyzed: {crossDocSummary.lastAnalyzed} · Powered by Gemma-2 on AMD Instinct™ MI300X
           </div>
         </div>
       </div>
@@ -1279,7 +1440,45 @@ function CrossDocIntelTab({ analysis }: { analysis: any }) {
             </div>
           </div>
           <button
-            onClick={() => demoOk("Report generating", "Cross-Document Intelligence Report will download shortly.")}
+            onClick={() => {
+              demo("Report generating", "Cross-Document Intelligence Report will download shortly.");
+              setTimeout(() => {
+                const doc = new jsPDF();
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(22);
+                doc.text("LegalOS", 20, 30);
+                
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text("From Documents to Decisions", 20, 38);
+                
+                doc.setDrawColor(200);
+                doc.setLineWidth(0.5);
+                doc.line(20, 45, 190, 45);
+                
+                doc.setTextColor(0);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(16);
+                doc.text("Cross-Document Intelligence Report", 20, 60);
+                
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(12);
+                doc.text(`Case ID: CASE-2026-001`, 20, 75);
+                doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 20, 85);
+                
+                doc.setFont("helvetica", "bold");
+                doc.text("AI Analysis Findings:", 20, 105);
+                doc.setFont("helvetica", "normal");
+                
+                const summaryText = "LegalOS analyzed multiple documents across this case and identified critical discrepancies. A major mismatch exists in the Claim Amount between the Claim Form and Consumer Complaint.";
+                const lines = doc.splitTextToSize(summaryText, 170);
+                doc.text(lines, 20, 115);
+                
+                doc.save("Cross_Doc_Intel_Report.pdf");
+                demoOk("Download Complete", "Report downloaded successfully.");
+              }, 1200);
+            }}
             className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             <Download className="h-4 w-4" />

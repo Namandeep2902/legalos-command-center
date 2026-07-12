@@ -3,8 +3,8 @@ import { PageHeader } from "@/components/legal/PageHeader";
 import { RiskBadge } from "@/components/legal/RiskBadge";
 import { casesList, riskDistribution } from "@/lib/mock-data";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
-import { ShieldAlert, TrendingUp, Flame } from "lucide-react";
-import { demoWarn } from "@/lib/demo-actions";
+import { ShieldAlert, TrendingUp, Flame, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/risk")({
   component: RiskPage,
@@ -12,6 +12,8 @@ export const Route = createFileRoute("/risk")({
 
 function RiskPage() {
   const highRisk = casesList.filter((c) => c.risk === "High");
+  const [patternOpen, setPatternOpen] = useState(false);
+  const motorCases = casesList.filter(c => (c.type || "").toLowerCase().includes("motor") || c.title?.toLowerCase().includes("motor"));
 
   return (
     <div className="mx-auto max-w-[1500px] p-4 md:p-8">
@@ -90,11 +92,45 @@ function RiskPage() {
             missing survey reports at claim intake.
           </p>
           <button
-            onClick={() => demoWarn("Motor risk pattern isolated", "5 cases share missing survey reports at intake. Drafting playbook…")}
+            onClick={() => setPatternOpen(o => !o)}
             className="mt-4 inline-flex h-9 items-center rounded-lg bg-accent px-3.5 text-xs font-semibold text-accent-foreground hover:opacity-90 transition-opacity"
           >
-            Investigate pattern
+            {patternOpen ? "Hide Analysis" : "Investigate pattern"}
           </button>
+          {patternOpen && (
+            <div className="mt-4 rounded-xl border border-white/20 bg-white/10 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
+                <AlertTriangle className="h-3.5 w-3.5 text-accent" />
+                Pattern Analysis — Motor Claims
+              </div>
+              <div className="space-y-2">
+                {[
+                  { finding: "Missing survey report at intake", cases: 5, impact: "High" },
+                  { finding: "Claim filed > 30 days after incident", cases: 3, impact: "Medium" },
+                  { finding: "Vehicle valuation dispute", cases: 4, impact: "High" },
+                  { finding: "FIR not filed within 24 hrs", cases: 2, impact: "Critical" },
+                ].map((f, i) => (
+                  <div key={i} className="flex items-center justify-between gap-3 text-xs">
+                    <span className="text-white/80">{f.finding}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                        f.impact === "Critical" ? "bg-red-500/30 text-red-200" :
+                        f.impact === "High" ? "bg-orange-500/30 text-orange-200" :
+                        "bg-yellow-500/30 text-yellow-200"
+                      }`}>{f.impact}</span>
+                      <span className="font-semibold text-white">{f.cases} cases</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Link
+                to="/cases"
+                className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+              >
+                View all motor cases →
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

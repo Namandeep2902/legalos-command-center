@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase,
   AlertOctagon,
@@ -12,6 +13,10 @@ import {
   GitCompare,
   FileSearch,
   Calendar,
+  X,
+  Send,
+  Bot,
+  User,
 } from "lucide-react";
 import {
   PieChart,
@@ -26,11 +31,11 @@ import {
   Tooltip,
 } from "recharts";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { StatCard } from "@/components/legal/StatCard";
 import { PriorityBadge } from "@/components/legal/RiskBadge";
-import { getCases } from "@/lib/api";
+import { getCases, queryChat } from "@/lib/api";
 import {
   overviewStats as mockStats,
   priorityActions,
@@ -39,7 +44,7 @@ import {
   aiInsights,
   priorityCases as mockCases,
 } from "@/lib/mock-data";
-import { demo, demoOk } from "@/lib/demo-actions";
+import { demo } from "@/lib/demo-actions";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -48,17 +53,42 @@ export const Route = createFileRoute("/")({
 const icons = [Briefcase, AlertOctagon, Gavel, ClipboardList, Heart, Sparkles];
 
 function Dashboard() {
-  const [cases, setCases] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { data: casesData, isLoading: loading } = useQuery({
+    queryKey: ["dashboard-cases"],
+    queryFn: getCases,
+    refetchInterval: 5000, // Auto-refresh every 5 seconds
+    staleTime: 0,
+  });
+  const cases = casesData || [];
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<{role: "user"|"ai", text: string}[]>([
+    { role: "ai", text: "Hello! I'm your LegalOS AI assistant powered by Gemma-2. Ask me anything about your cases, legal strategy, or document analysis." }
+  ]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function load() {
-      const data = await getCases();
-      setCases(data);
-      setLoading(false);
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const sendChat = async () => {
+    const msg = chatInput.trim();
+    if (!msg) return;
+    setChatInput("");
+    const newMessages = [...chatMessages, { role: "user", text: msg } as {role: "user"|"ai", text: string}];
+    setChatMessages(newMessages);
+    setChatLoading(true);
+    try {
+      const res = await queryChat(newMessages);
+      setChatMessages([...newMessages, { role: "ai", text: res.response || "Unable to get response." }]);
+    } catch {
+      setChatMessages([...newMessages, { role: "ai", text: "AI engine temporarily unavailable. Please try again." }]);
     }
-    load();
-  }, []);
+    setChatLoading(false);
+  };
 
   const totalCases = cases.length > 0 ? cases.length : 248;
   const highRisk = cases.length > 0 ? cases.filter(c => c.risk === "High").length : 36;
@@ -74,6 +104,71 @@ function Dashboard() {
 
   return (
     <div className="mx-auto max-w-[1600px] p-4 md:p-8">
+      {/* ─── Ask LegalOS Chat Modal ─── */}
+      {chatOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-end p-4 sm:p-6 pointer-events-none">
+          <div className="pointer-events-auto w-full max-w-md flex flex-col rounded-2xl border border-border bg-background shadow-2xl" style={{height: "480px"}}>
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-border px-4 py-3 shrink-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                <Sparkles className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-foreground">Ask LegalOS</div>
+                <div className="text-[11px] text-muted-foreground">Powered by Gemma-2 on AMD Instinct™ MI300X</div>
+              </div>
+              <button onClick={() => setChatOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {chatMessages.map((m, i) => (
+                <div key={i} className={`flex gap-2 ${m.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${m.role === "user" ? "bg-primary" : "bg-secondary"}` }>
+                    {m.role === "user" ? <User className="h-3.5 w-3.5 text-primary-foreground" /> : <Bot className="h-3.5 w-3.5 text-foreground" />}
+                  </div>
+                  <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm leading-relaxed ${ m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground" }`}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="flex gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary">
+                    <Bot className="h-3.5 w-3.5 text-foreground" />
+                  </div>
+                  <div className="bg-secondary rounded-xl px-3 py-2 text-sm text-muted-foreground">
+                    Thinking...
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            {/* Input */}
+            <div className="border-t border-border p-3 shrink-0">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && sendChat()}
+                  placeholder="Ask about a case, risk, or document..."
+                  className="flex-1 rounded-lg border border-border bg-secondary px-3 py-2 text-sm focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+                <button
+                  onClick={sendChat}
+                  disabled={chatLoading || !chatInput.trim()}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <PageHeader
         eyebrow="Good morning, Anita"
         title="Legal Operations Command Center"
@@ -88,7 +183,7 @@ function Dashboard() {
               Last 7 days
             </button>
             <button
-              onClick={() => demoOk("Ask LegalOS", "Nova Legal LLM is ready. Type a question or paste a document.")}
+              onClick={() => setChatOpen(o => !o)}
               className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
             >
               <Sparkles className="h-4 w-4" />

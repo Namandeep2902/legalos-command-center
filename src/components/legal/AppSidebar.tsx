@@ -26,12 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const workspaceItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Smart Inbox", url: "/inbox", icon: Inbox, badge: "3" },
-  { title: "Cases", url: "/cases", icon: FolderKanban },
-  { title: "Action Center", url: "/actions", icon: Zap, badge: "8" },
-];
+import { getUser } from "@/lib/auth";
 
 const intelItems = [
   { title: "Evidence Tracker", url: "/evidence", icon: FileSearch },
@@ -44,6 +39,16 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [theme, setTheme] = useState("light");
+  
+  const user = getUser();
+  const isDemo = user?.id === "demo";
+  
+  const workspaceItems = [
+    { title: "Dashboard", url: "/", icon: LayoutDashboard },
+    { title: "Smart Inbox", url: "/inbox", icon: Inbox, badge: isDemo ? "3" : undefined },
+    { title: "Cases", url: "/cases", icon: FolderKanban },
+    { title: "Action Center", url: "/actions", icon: Zap, badge: isDemo ? "8" : undefined },
+  ];
 
   useEffect(() => {
     const activeTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";

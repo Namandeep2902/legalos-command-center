@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Zap, ArrowRight, Clock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { PriorityBadge } from "@/components/legal/RiskBadge";
 import { priorityActions } from "@/lib/mock-data";
+import { getCases } from "@/lib/api";
+import { getUser } from "@/lib/auth";
 
 
 export const Route = createFileRoute("/actions")({
@@ -11,7 +14,16 @@ export const Route = createFileRoute("/actions")({
 });
 
 function ActionsPage() {
-  const extended = [
+  const user = getUser();
+  const isDemo = user?.id === "demo";
+
+  const { data: casesData } = useQuery({
+    queryKey: ["actions-cases"],
+    queryFn: getCases,
+  });
+  const cases = casesData || [];
+
+  const mockExtended = [
     ...priorityActions,
     {
       id: "a5",
@@ -33,11 +45,31 @@ function ActionsPage() {
     },
   ];
 
+  const realActions = cases.flatMap((c: any) => [
+    {
+      id: `action-${c.id || c._id}-1`,
+      title: `Verify details for ${c.title}`,
+      caseNo: `Case #${(c.id || c._id || "").toString().slice(-5)}`,
+      caseTitle: c.title,
+      action: "Please review uploaded documents and confirm key info.",
+      priority: "HIGH" as const,
+      due: "Due today",
+      rawCaseId: c.id || c._id
+    }
+  ]);
+
+  const extended = isDemo ? mockExtended : realActions;
+
+  const overdueCount = extended.filter(a => a.priority === "HIGH").length;
+  const todayCount = extended.filter(a => a.due.toLowerCase().includes("today") || a.due.toLowerCase().includes("hour")).length;
+  const weekCount = extended.filter(a => a.due.toLowerCase().includes("day") || a.due.toLowerCase().includes("week")).length;
+  const laterCount = extended.filter(a => a.due.toLowerCase().includes("next") || a.due.toLowerCase().includes("later")).length;
+
   const groups = [
-    { label: "Overdue", count: 2, tone: "destructive" as const },
-    { label: "Due Today", count: 8, tone: "warning" as const },
-    { label: "This Week", count: 14, tone: "info" as const },
-    { label: "Later", count: 10, tone: "neutral" as const },
+    { label: "Overdue", count: overdueCount, tone: "destructive" as const },
+    { label: "Due Today", count: todayCount, tone: "warning" as const },
+    { label: "This Week", count: weekCount, tone: "info" as const },
+    { label: "Later", count: laterCount, tone: "neutral" as const },
   ];
 
   const [group, setGroup] = useState<string>("Overdue");
@@ -82,39 +114,45 @@ function ActionsPage() {
           </h2>
         </div>
         <div className="divide-y divide-border">
-          {visible.map((a) => (
-            <div
-              key={a.id}
-              className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 p-5 hover:bg-secondary/30 transition-colors"
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <PriorityBadge priority={a.priority} />
-                  <span className="text-[11px] text-muted-foreground">
-                    {a.caseNo} · {a.caseTitle}
-                  </span>
-                </div>
-                <div className="font-semibold text-foreground">{a.title}</div>
-                <div className="mt-0.5 text-sm text-muted-foreground">{a.action}</div>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="text-right hidden sm:block">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1 justify-end">
-                    <Clock className="h-3 w-3" /> Due
+          {visible.length > 0 ? (
+            visible.map((a) => (
+              <div
+                key={a.id}
+                className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 p-5 hover:bg-secondary/30 transition-colors"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                    <PriorityBadge priority={a.priority} />
+                    <span className="text-[11px] text-muted-foreground">
+                      {a.caseNo} · {a.caseTitle}
+                    </span>
                   </div>
-                  <div className="text-xs font-semibold text-foreground">{a.due}</div>
+                  <div className="font-semibold text-foreground">{a.title}</div>
+                  <div className="mt-0.5 text-sm text-muted-foreground">{a.action}</div>
                 </div>
-                <Link
-                  to="/cases/$caseId"
-                  params={{ caseId: "10245" }}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90"
-                >
-                  Open Case
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right hidden sm:block">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1 justify-end">
+                      <Clock className="h-3 w-3" /> Due
+                    </div>
+                    <div className="text-xs font-semibold text-foreground">{a.due}</div>
+                  </div>
+                  <Link
+                    to="/cases/$caseId"
+                    params={{ caseId: (a as any).rawCaseId || "10245" }}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                  >
+                    Open Case
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              All caught up! No pending actions in this category.
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

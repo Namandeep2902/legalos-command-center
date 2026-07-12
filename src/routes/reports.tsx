@@ -240,22 +240,7 @@ function ReportsPage() {
         </div>
       </div>
 
-      {/* PDF Export Banner */}
-      <div className="rounded-xl border border-border bg-card p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div>
-          <h4 className="font-bold text-foreground">Schedule Automatic Reports</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Deliver executive summary PDF reports directly to board members and claims heads weekly or monthly.
-          </p>
-        </div>
-        <button
-          onClick={() => demoOk("Reports Scheduled", "Weekly PDF briefing scheduled to board members.")}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-semibold text-primary-foreground hover:opacity-90 active:scale-[0.98] transition-all shrink-0"
-        >
-          <ArrowUpRight className="h-4 w-4" />
-          Schedule Export
-        </button>
-      </div>
+
     </div>
   );
 }

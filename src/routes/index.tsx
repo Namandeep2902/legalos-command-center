@@ -94,6 +94,10 @@ function Dashboard() {
     setChatLoading(false);
   };
 
+  const isDemo = user?.id === "demo";
+  const displayedCases = cases.length > 0 ? cases : (isDemo ? mockCases : []);
+  const displayedActions = isDemo ? priorityActions : [];
+
   const totalCases = cases.length;
   const highRisk = cases.filter(c => c.risk === "High").length;
   const avgHealth = cases.length > 0 
@@ -104,6 +108,18 @@ function Dashboard() {
     { label: "Total Active Cases", value: totalCases, delta: "+12 this week", tone: "info" as const },
     { label: "High Risk Matters", value: highRisk, delta: "+4 newly flagged", tone: "destructive" as const },
     { label: "Average Health Score", value: `${avgHealth}%`, delta: "+2.4% vs last month", tone: "success" as const },
+  ];
+
+  // Dynamic Risk Distribution
+  const highCount = cases.filter(c => c.risk === "High").length;
+  const mediumCount = cases.filter(c => c.risk === "Medium").length;
+  const lowCount = cases.filter(c => c.risk === "Low" || !c.risk).length;
+  const totalRiskCount = isDemo ? 248 : cases.length;
+
+  const dynamicRiskDistribution = isDemo ? riskDistribution : [
+    { level: "High", count: highCount, color: "var(--destructive)" },
+    { level: "Medium", count: mediumCount, color: "var(--warning)" },
+    { level: "Low", count: lowCount, color: "var(--success)" },
   ];
 
   return (
@@ -212,44 +228,46 @@ function Dashboard() {
       </div>
 
       {/* AI Insights Summary Banner */}
-      <section className="mt-6 overflow-hidden rounded-xl border border-border hero-gradient text-primary-foreground shadow-lg">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/20">
-              <Sparkles className="h-5 w-5 text-accent" />
+      {displayedCases.length > 0 && (
+        <section className="mt-6 overflow-hidden rounded-xl border border-border hero-gradient text-primary-foreground shadow-lg">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/20">
+                <Sparkles className="h-5 w-5 text-accent" />
+              </div>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold tracking-tight">AI Intelligence Summary</h2>
+                <span className="inline-flex items-center rounded-full bg-accent/20 px-2.5 py-0.5 text-[11px] font-semibold text-accent">
+                  Live
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold tracking-tight">AI Intelligence Summary</h2>
-              <span className="inline-flex items-center rounded-full bg-accent/20 px-2.5 py-0.5 text-[11px] font-semibold text-accent">
-                Live
-              </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {aiInsights.map((insight, i) => {
+                const InsightIcon =
+                  insight.icon === "alert"
+                    ? AlertOctagon
+                    : insight.icon === "evidence"
+                      ? FileSearch
+                      : insight.icon === "hearing"
+                        ? Calendar
+                        : GitCompare;
+                return (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 rounded-lg border-l-2 border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10"
+                  >
+                    <InsightIcon className="mt-0.5 h-4.5 w-4.5 shrink-0 text-accent" />
+                    <p className="text-sm leading-relaxed text-primary-foreground/90">
+                      {insight.text}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {aiInsights.map((insight, i) => {
-              const InsightIcon =
-                insight.icon === "alert"
-                  ? AlertOctagon
-                  : insight.icon === "evidence"
-                    ? FileSearch
-                    : insight.icon === "hearing"
-                      ? Calendar
-                      : GitCompare;
-              return (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 rounded-lg border-l-2 border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10"
-                >
-                  <InsightIcon className="mt-0.5 h-4.5 w-4.5 shrink-0 text-accent" />
-                  <p className="text-sm leading-relaxed text-primary-foreground/90">
-                    {insight.text}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Hero: Priority Actions */}
       <section className="mt-6 overflow-hidden rounded-xl border border-border hero-gradient text-primary-foreground shadow-lg">
@@ -276,45 +294,51 @@ function Dashboard() {
         </div>
 
         <div className="divide-y divide-white/10">
-          {priorityActions.map((a) => (
-            <div
-              key={a.id}
-              className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 p-5 hover:bg-white/5 transition-colors"
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <PriorityBadge priority={a.priority} />
-                  <span className="text-[11px] text-primary-foreground/60">
-                    {a.caseNo} · {a.caseTitle}
-                  </span>
-                </div>
-                <div className="font-semibold text-primary-foreground truncate">
-                  {a.title}
-                </div>
-                <div className="mt-0.5 text-sm text-primary-foreground/70">
-                  {a.action}
-                </div>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="text-right hidden sm:block">
-                  <div className="text-[10px] uppercase tracking-wider text-primary-foreground/50">
-                    Due
+          {displayedActions.length > 0 ? (
+            displayedActions.map((a) => (
+              <div
+                key={a.id}
+                className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 p-5 hover:bg-white/5 transition-colors"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                    <PriorityBadge priority={a.priority} />
+                    <span className="text-[11px] text-primary-foreground/60">
+                      {a.caseNo} · {a.caseTitle}
+                    </span>
                   </div>
-                  <div className="text-xs font-semibold text-primary-foreground">
-                    {a.due}
+                  <div className="font-semibold text-primary-foreground truncate">
+                    {a.title}
+                  </div>
+                  <div className="mt-0.5 text-sm text-primary-foreground/70">
+                    {a.action}
                   </div>
                 </div>
-                <Link
-                  to="/cases/$caseId"
-                  params={{ caseId: "10245" }}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-foreground/10 border border-white/15 px-3 text-xs font-semibold text-primary-foreground hover:bg-primary-foreground/20 transition-colors"
-                >
-                  Open Case
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right hidden sm:block">
+                    <div className="text-[10px] uppercase tracking-wider text-primary-foreground/50">
+                      Due
+                    </div>
+                    <div className="text-xs font-semibold text-primary-foreground">
+                      {a.due}
+                    </div>
+                  </div>
+                  <Link
+                    to="/cases/$caseId"
+                    params={{ caseId: "10245" }}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-foreground/10 border border-white/15 px-3 text-xs font-semibold text-primary-foreground hover:bg-primary-foreground/20 transition-colors"
+                  >
+                    Open Case
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="p-8 text-center text-primary-foreground/50 text-sm">
+              All caught up! No pending priority actions.
             </div>
-          ))}
+          )}
         </div>
       </section>
 
@@ -338,69 +362,75 @@ function Dashboard() {
           </Link>
         </div>
         <div className="divide-y divide-border">
-          {(cases.length > 0 ? cases : mockCases).map((c, i) => {
-            const score = c.riskScore || (c.risk === "High" ? 87 : c.risk === "Medium" ? 54 : 32);
-            const barColor =
-              score >= 90
-                ? "bg-destructive"
-                : score >= 80
-                  ? "bg-orange-500"
-                  : "bg-warning";
-            const textColor =
-              score >= 90
-                ? "text-destructive"
-                : score >= 80
-                  ? "text-orange-500"
-                  : "text-warning";
-            return (
-              <Link
-                key={c.id}
-                to="/cases/$caseId"
-                params={{ caseId: c.id }}
-                className="grid grid-cols-1 md:grid-cols-[auto_minmax(0,1fr)_200px_minmax(0,1fr)] items-center gap-4 p-5 hover:bg-secondary/50 transition-colors"
-              >
-                {/* Rank */}
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-bold text-sm ${
-                      i === 0
-                        ? "bg-destructive/10 text-destructive"
-                        : i === 1
-                          ? "bg-orange-500/10 text-orange-500"
-                          : "bg-warning/10 text-warning"
-                    }`}
-                  >
-                    {i + 1}
-                  </div>
-                </div>
-
-                {/* Case Info */}
-                <div className="min-w-0">
-                  <div className="font-semibold text-foreground truncate">{c.title}</div>
-                  <div className="text-xs text-muted-foreground">Case #{c.id}</div>
-                </div>
-
-                {/* Risk Score Bar */}
-                <div className="flex items-center gap-3">
-                  <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
+          {displayedCases.length > 0 ? (
+            displayedCases.map((c, i) => {
+              const score = c.riskScore || (c.risk === "High" ? 87 : c.risk === "Medium" ? 54 : 32);
+              const barColor =
+                score >= 90
+                  ? "bg-destructive"
+                  : score >= 80
+                    ? "bg-orange-500"
+                    : "bg-warning";
+              const textColor =
+                score >= 90
+                  ? "text-destructive"
+                  : score >= 80
+                    ? "text-orange-500"
+                    : "text-warning";
+              return (
+                <Link
+                  key={c.id}
+                  to="/cases/$caseId"
+                  params={{ caseId: c.id }}
+                  className="grid grid-cols-1 md:grid-cols-[auto_minmax(0,1fr)_200px_minmax(0,1fr)] items-center gap-4 p-5 hover:bg-secondary/50 transition-colors"
+                >
+                  {/* Rank */}
+                  <div className="flex items-center gap-4">
                     <div
-                      className={`absolute inset-y-0 left-0 rounded-full ${barColor}`}
-                      style={{ width: `${score}%` }}
-                    />
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-bold text-sm ${
+                        i === 0
+                          ? "bg-destructive/10 text-destructive"
+                          : i === 1
+                            ? "bg-orange-500/10 text-orange-500"
+                            : "bg-warning/10 text-warning"
+                      }`}
+                    >
+                      {i + 1}
+                    </div>
                   </div>
-                  <span className={`text-sm font-bold tabular-nums ${textColor}`}>
-                    {score}%
-                  </span>
-                </div>
 
-                {/* Reason + Amount */}
-                <div className="text-right">
-                  <div className="text-sm text-muted-foreground truncate">{c.reason || "AI identified critical claim conflicts"}</div>
-                  <div className="text-sm font-semibold text-foreground">{c.money || c.amount || "₹0"}</div>
-                </div>
-              </Link>
-            );
-          })}
+                  {/* Case Info */}
+                  <div className="min-w-0">
+                    <div className="font-semibold text-foreground truncate">{c.title}</div>
+                    <div className="text-xs text-muted-foreground">Case #{c.id}</div>
+                  </div>
+
+                  {/* Risk Score Bar */}
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`absolute inset-y-0 left-0 rounded-full ${barColor}`}
+                        style={{ width: `${score}%` }}
+                      />
+                    </div>
+                    <span className={`text-sm font-bold tabular-nums ${textColor}`}>
+                      {score}%
+                    </span>
+                  </div>
+
+                  {/* Reason + Amount */}
+                  <div className="text-right">
+                    <div className="text-sm text-muted-foreground truncate">{c.reason || "AI identified critical claim conflicts"}</div>
+                    <div className="text-sm font-semibold text-foreground">{c.money || c.amount || "₹0"}</div>
+                  </div>
+                </Link>
+              );
+            })
+          ) : (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              No active cases. Go to the Smart Inbox to upload documents and create a case!
+            </div>
+          )}
         </div>
       </section>
 
@@ -417,30 +447,36 @@ function Dashboard() {
               </h3>
             </div>
             <span className="rounded-md bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
-              248 cases
+              {totalRiskCount} cases
             </span>
           </div>
           <div className="h-44">
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={riskDistribution}
-                  dataKey="count"
-                  nameKey="level"
-                  innerRadius={48}
-                  outerRadius={70}
-                  paddingAngle={3}
-                  stroke="none"
-                >
-                  {riskDistribution.map((d) => (
-                    <Cell key={d.level} fill={d.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+            {totalRiskCount > 0 ? (
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={dynamicRiskDistribution}
+                    dataKey="count"
+                    nameKey="level"
+                    innerRadius={48}
+                    outerRadius={70}
+                    paddingAngle={3}
+                    stroke="none"
+                  >
+                    {dynamicRiskDistribution.map((d) => (
+                      <Cell key={d.level} fill={d.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                No data available
+              </div>
+            )}
           </div>
           <div className="mt-2 space-y-2">
-            {riskDistribution.map((r) => (
+            {dynamicRiskDistribution.map((r) => (
               <div key={r.level} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <span
@@ -452,7 +488,7 @@ function Dashboard() {
                 <div className="tabular-nums">
                   <span className="font-semibold text-foreground">{r.count}</span>
                   <span className="ml-1 text-muted-foreground">
-                    ({Math.round((r.count / 248) * 100)}%)
+                    ({totalRiskCount > 0 ? Math.round((r.count / totalRiskCount) * 100) : 0}%)
                   </span>
                 </div>
               </div>

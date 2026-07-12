@@ -88,7 +88,8 @@ function SmartInbox() {
   }, []);
 
   const filteredDocs = useMemo(() => {
-    const source = documents.length > 0 ? documents : inboxDocuments;
+    const isDemo = getUser()?.id === "demo";
+    const source = documents.length > 0 ? documents : (isDemo ? inboxDocuments : []);
     if (activeFilter === "All") return source;
     const keywords = chipTypeMap[activeFilter];
     return source.filter((d) =>

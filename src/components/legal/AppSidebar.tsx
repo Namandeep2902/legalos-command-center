@@ -36,7 +36,7 @@ const workspaceItems = [
 const intelItems = [
   { title: "Evidence Tracker", url: "/evidence", icon: FileSearch },
   { title: "Risk Intelligence", url: "/risk", icon: ShieldCheck },
-  { title: "Reports", url: "/reports", icon: BarChart3, soon: true },
+  { title: "Reports", url: "/reports", icon: BarChart3 },
 ];
 
 export function AppSidebar() {

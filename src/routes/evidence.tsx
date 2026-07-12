@@ -1,15 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, XCircle, AlertTriangle, Search } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/legal/PageHeader";
 import { cn } from "@/lib/utils";
 import { demoOk } from "@/lib/demo-actions";
+import { getCases } from "@/lib/api";
+import { getUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/evidence")({
   component: EvidencePage,
 });
 
-const rows = [
+const mockRows = [
   { case: "Case #10245", party: "Rajesh Sharma", missing: ["FIR", "Survey Report"], present: 6, total: 8 },
   { case: "Case #8932", party: "Priya Malhotra", missing: ["Survey Report"], present: 7, total: 8 },
   { case: "Case #9821", party: "Amit Verma", missing: ["Discharge Summary"], present: 5, total: 6 },
@@ -18,6 +21,30 @@ const rows = [
 ];
 
 function EvidencePage() {
+  const user = getUser();
+  const isDemo = user?.id === "demo";
+
+  const { data: casesData } = useQuery({
+    queryKey: ["evidence-cases"],
+    queryFn: getCases,
+  });
+  const cases = casesData || [];
+
+  // Build rows from real cases
+  const realRows = cases.map((c: any) => {
+    const missingDocs = c.missing_docs || [];
+    const totalDocs = (c.documents_count || 0) + missingDocs.length;
+    return {
+      case: `Case #${(c.id || c._id || "").toString().slice(-5)}`,
+      party: c.title || "Unknown",
+      missing: missingDocs,
+      present: c.documents_count || 0,
+      total: totalDocs || 1,
+    };
+  });
+
+  const rows = isDemo ? mockRows : realRows;
+
   const [q, setQ] = useState("");
   const filtered = rows.filter(
     (r) =>
@@ -26,6 +53,11 @@ function EvidencePage() {
       r.party.toLowerCase().includes(q.toLowerCase()),
   );
   const totalMissing = filtered.reduce((a, r) => a + r.missing.length, 0);
+  const totalCoverage = rows.length > 0
+    ? Math.round(rows.reduce((a, r) => a + (r.present / r.total) * 100, 0) / rows.length)
+    : 0;
+  const fullyReady = rows.filter(r => r.missing.length === 0).length;
+
   return (
     <div className="mx-auto max-w-[1500px] p-4 md:p-8">
       <PageHeader
@@ -36,22 +68,22 @@ function EvidencePage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="card-elevated p-5">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Coverage</div>
-          <div className="mt-2 text-3xl font-bold tabular-nums">86%</div>
-          <div className="text-xs text-success mt-1">↑ 4% this week</div>
+          <div className="mt-2 text-3xl font-bold tabular-nums">{totalCoverage}%</div>
+          <div className="text-xs text-success mt-1">across {rows.length} cases</div>
         </div>
         <div className="card-elevated p-5">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Missing Items</div>
           <div className="mt-2 text-3xl font-bold text-destructive tabular-nums">{totalMissing}</div>
-          <div className="text-xs text-muted-foreground mt-1">across 4 cases</div>
+          <div className="text-xs text-muted-foreground mt-1">across {rows.filter(r => r.missing.length > 0).length} cases</div>
         </div>
         <div className="card-elevated p-5">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Critical Gaps</div>
-          <div className="mt-2 text-3xl font-bold text-destructive tabular-nums">3</div>
-          <div className="text-xs text-muted-foreground mt-1">hearing within 7 days</div>
+          <div className="mt-2 text-3xl font-bold text-destructive tabular-nums">{rows.filter(r => r.missing.length >= 2).length}</div>
+          <div className="text-xs text-muted-foreground mt-1">cases with 2+ missing</div>
         </div>
         <div className="card-elevated p-5">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Fully Ready</div>
-          <div className="mt-2 text-3xl font-bold text-success tabular-nums">142</div>
+          <div className="mt-2 text-3xl font-bold text-success tabular-nums">{fullyReady}</div>
           <div className="text-xs text-muted-foreground mt-1">cases hearing-ready</div>
         </div>
       </div>
@@ -76,6 +108,13 @@ function EvidencePage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-5 py-10 text-center text-muted-foreground">
+                  No cases found. Upload documents to create cases.
+                </td>
+              </tr>
+            )}
             {filtered.map((r) => {
               const pct = Math.round((r.present / r.total) * 100);
               return (

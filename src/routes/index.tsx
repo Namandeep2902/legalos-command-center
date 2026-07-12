@@ -94,11 +94,11 @@ function Dashboard() {
     setChatLoading(false);
   };
 
-  const totalCases = cases.length > 0 ? cases.length : 248;
-  const highRisk = cases.length > 0 ? cases.filter(c => c.risk === "High").length : 36;
+  const totalCases = cases.length;
+  const highRisk = cases.filter(c => c.risk === "High").length;
   const avgHealth = cases.length > 0 
-    ? Math.round(cases.reduce((sum, c) => sum + (c.health_score || 78), 0) / cases.length) 
-    : 81;
+    ? Math.round(cases.reduce((sum, c) => sum + (c.health_score || 75), 0) / cases.length) 
+    : 0;
 
   const dynamicStats = [
     { label: "Total Active Cases", value: totalCases, delta: "+12 this week", tone: "info" as const },

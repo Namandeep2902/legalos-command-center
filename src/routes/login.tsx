@@ -32,15 +32,11 @@ function LoginPage() {
       <div className="relative w-full max-w-md space-y-8">
         {/* Branding Header */}
         <div className="flex flex-col items-center text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[oklch(0.62_0.14_55)] to-[oklch(0.7_0.15_65)] shadow-lg shadow-[oklch(0.62_0.14_55)]/20 animate-bounce duration-[3000ms]">
-            <Scale className="h-7 w-7 text-[oklch(0.15_0.02_258)]" strokeWidth={2.5} />
-          </div>
-          <h1 className="mt-6 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-            LegalOS
-          </h1>
-          <p className="mt-2 text-sm text-[oklch(0.88_0.015_250)]/70 tracking-wide font-medium">
-            From Documents to Decisions
-          </p>
+          <img
+            src="/logo-dark.png"
+            alt="LegalOS Logo"
+            className="h-28 object-contain mb-2"
+          />
         </div>
 
         {/* Login Card */}

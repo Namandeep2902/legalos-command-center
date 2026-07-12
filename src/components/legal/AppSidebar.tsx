@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -42,6 +43,24 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      return document.documentElement.classList.contains("dark") ? "dark" : "light";
+    }
+    return "light";
+  });
+
+  useEffect(() => {
+    const handleThemeChange = (e: any) => {
+      setTheme(e.detail);
+    };
+    window.addEventListener("theme-change", handleThemeChange);
+    return () => {
+      window.removeEventListener("theme-change", handleThemeChange);
+    };
+  }, []);
+
+  const logoSrc = theme === "dark" ? "/logo-dark.png" : "/logo-light.png";
 
   const isActive = (url: string) =>
     url === "/" ? pathname === "/" : pathname.startsWith(url);
@@ -49,18 +68,22 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
-        <Link to="/" className="flex items-center gap-2.5 px-2 py-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg accent-gradient shadow-md">
-            <Scale className="h-5 w-5 text-sidebar-primary-foreground" strokeWidth={2.5} />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <div className="font-bold text-base tracking-tight text-sidebar-foreground">
-                LegalOS
-              </div>
-              <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60">
-                Legal Intelligence
-              </div>
+        <Link to="/" className="flex items-center justify-center px-2 py-3 overflow-hidden">
+          {collapsed ? (
+            <div className="h-9 w-9 overflow-hidden rounded-full border border-sidebar-border bg-sidebar/50 flex items-center justify-center">
+              <img
+                src={logoSrc}
+                alt="LegalOS Emblem"
+                className="h-14 w-8 max-w-none object-cover object-top -translate-y-[1px]"
+              />
+            </div>
+          ) : (
+            <div className="flex h-11 w-full items-center justify-start overflow-hidden px-1">
+              <img
+                src={logoSrc}
+                alt="LegalOS Logo"
+                className="h-11 max-w-none object-contain"
+              />
             </div>
           )}
         </Link>

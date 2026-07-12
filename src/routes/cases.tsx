@@ -26,6 +26,13 @@ function CasesPage() {
       setLoading(false);
     }
     load();
+
+    // Check URL parameters for global search queries
+    const params = new URLSearchParams(window.location.search);
+    const qParam = params.get("q");
+    if (qParam) {
+      setQuery(qParam);
+    }
   }, []);
 
   const filtered = useMemo(() => {
@@ -36,7 +43,7 @@ function CasesPage() {
       const q = query.trim().toLowerCase();
       const matchesQuery =
         !q ||
-        c.id.toLowerCase().includes(q) ||
+        (c.id || "").toLowerCase().includes(q) ||
         (c.title || "").toLowerCase().includes(q) ||
         (c.party || "").toLowerCase().includes(q) ||
         (c.case_type || c.type || "").toLowerCase().includes(q);

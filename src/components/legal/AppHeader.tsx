@@ -1,5 +1,5 @@
-import { Bell, Search, HelpCircle, Command } from "lucide-react";
-import { useState } from "react";
+import { Bell, Search, HelpCircle, Command, Sun, Moon } from "lucide-react";
+import { useState, useEffect } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -7,6 +7,29 @@ import { demo, demoOk } from "@/lib/demo-actions";
 
 export function AppHeader() {
   const [q, setQ] = useState("");
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("theme") || "light";
+    }
+    return "light";
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    localStorage.setItem("theme", theme);
+    // Dispatch custom event to notify other components (like sidebar logo)
+    window.dispatchEvent(new CustomEvent("theme-change", { detail: theme }));
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
     day: "numeric",
@@ -16,7 +39,7 @@ export function AppHeader() {
 
   const submitSearch = () => {
     if (!q.trim()) return;
-    demo(`Searching for "${q}"`, "Global search across cases, documents & parties.");
+    window.location.href = `/cases?q=${encodeURIComponent(q.trim())}`;
   };
 
   return (
@@ -46,7 +69,13 @@ export function AppHeader() {
           </div>
           <div className="text-xs font-semibold text-foreground">{today}</div>
         </div>
-        <Separator orientation="vertical" className="hidden lg:block h-6" />
+        <button
+          onClick={toggleTheme}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
 
         <button
           onClick={() => demo("Help & Support", "Docs, keyboard shortcuts, and contact options.")}

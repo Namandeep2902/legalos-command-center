@@ -95,20 +95,21 @@ The entire stack is containerized for seamless evaluation:
 ## Screenshots
 
 ### Dashboard
-![Dashboard](<img width="1888" height="919" alt="image" src="https://github.com/user-attachments/assets/fdb676bb-70f4-4da4-ba88-39ee32003f97" />)(<img width="1905" height="910" alt="image" src="https://github.com/user-attachments/assets/fdb4e6e9-6489-4285-aa14-31304c6f40d7" />
+(<img width="1888" height="919" alt="image" src="https://github.com/user-attachments/assets/fdb676bb-70f4-4da4-ba88-39ee32003f97" />)
+(<img width="1905" height="910" alt="image" src="https://github.com/user-attachments/assets/fdb4e6e9-6489-4285-aa14-31304c6f40d7" />
 )
 
 ### Smart Inbox
-![Smart Inbox](<img width="1886" height="909" alt="image" src="https://github.com/user-attachments/assets/fc27fa00-f0e1-4905-b1c0-7d16f2390a9d" />
+(<img width="1886" height="909" alt="image" src="https://github.com/user-attachments/assets/fc27fa00-f0e1-4905-b1c0-7d16f2390a9d" />
 )
 
 ### Case Workspace
-![Case Workspace](<img width="1884" height="920" alt="image" src="https://github.com/user-attachments/assets/59157a9b-0b9b-42e2-9c96-c0464cfb2561" />
+(<img width="1884" height="920" alt="image" src="https://github.com/user-attachments/assets/59157a9b-0b9b-42e2-9c96-c0464cfb2561" />
 )(<img width="1877" height="917" alt="image" src="https://github.com/user-attachments/assets/f21bc8bd-139e-4ed4-bcd6-b944189c63c6" />
 )
 
 ### Evidence Tracker
-![Evidence Tracker](<img width="1912" height="905" alt="image" src="https://github.com/user-attachments/assets/19195468-ed8f-4b64-9036-02ce14b64b31" />
+(<img width="1912" height="905" alt="image" src="https://github.com/user-attachments/assets/19195468-ed8f-4b64-9036-02ce14b64b31" />
 )
 
 ## Project Structure

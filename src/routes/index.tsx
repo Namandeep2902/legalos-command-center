@@ -45,6 +45,7 @@ import {
   priorityCases as mockCases,
 } from "@/lib/mock-data";
 import { demo } from "@/lib/demo-actions";
+import { getUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -54,6 +55,9 @@ const icons = [Briefcase, AlertOctagon, Gavel, ClipboardList, Heart, Sparkles];
 
 function Dashboard() {
   const navigate = useNavigate();
+  const user = getUser();
+  const firstName = user?.name ? user.name.split(" ")[0] : "Anita";
+
   const { data: casesData, isLoading: loading } = useQuery({
     queryKey: ["dashboard-cases"],
     queryFn: getCases,
@@ -170,7 +174,7 @@ function Dashboard() {
       )}
 
       <PageHeader
-        eyebrow="Good morning, Anita"
+        eyebrow={`Good morning, ${firstName}`}
         title="Legal Operations Command Center"
         description="Your team's workload, risk exposure and next-best actions — synthesized from every document ingested today."
         actions={

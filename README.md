@@ -78,8 +78,7 @@ Getting LegalOS running locally is completely automated via Docker.
    ```
 
 4. **Access the App**:
-   - Frontend: `http://localhost:8080`
-   - Backend API Docs: `http://localhost:8000/docs`
+  legalos-command-center.vercel.app
 
 ## Docker
 The entire stack is containerized for seamless evaluation:

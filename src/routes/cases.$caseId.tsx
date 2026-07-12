@@ -142,17 +142,21 @@ function CaseWorkspace() {
 
   const loadAllData = async () => {
     setLoading(true);
-    const [c, docs, ana, nts] = await Promise.all([
-      getCase(caseId),
-      getCaseDocuments(caseId),
-      getCaseAnalysis(caseId),
-      getCaseNotes(caseId)
-    ]);
-    setCaseObj(c);
-    setDocuments(docs);
-    setAnalysis(ana);
-    setNotes(nts);
-    setLoading(false);
+    try {
+      const c = await getCase(caseId).catch(() => null);
+      const docs = await getCaseDocuments(caseId).catch(() => []);
+      const ana = await getCaseAnalysis(caseId).catch(() => null);
+      const nts = await getCaseNotes(caseId).catch(() => []);
+      
+      setCaseObj(c);
+      setDocuments(docs);
+      setAnalysis(ana);
+      setNotes(nts);
+    } catch (err) {
+      console.error("Failed to load case data:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
